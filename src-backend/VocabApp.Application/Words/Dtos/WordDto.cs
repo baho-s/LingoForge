@@ -1,0 +1,29 @@
+using VocabApp.Domain.Aggregates.WordAggregate;
+
+namespace VocabApp.Application.Words.Dtos;
+
+public sealed record WordDto(
+    Guid Id,
+    string Original,
+    string Translation,
+    string? AiSentence,
+    int IntervalDays,
+    float EaseFactor,
+    int Repetitions,
+    DateTime NextReviewAt,
+    DateTime CreatedAt)
+{
+    public static WordDto FromEntity(Word word)
+    {
+        return new WordDto(
+            word.Id.Value,
+            word.Original,
+            word.Translation,
+            word.AiSentence,
+            word.Review.IntervalDays,
+            word.Review.EaseFactor,
+            word.Review.Repetitions,
+            word.Review.NextReviewAt,
+            word.CreatedAt);
+    }
+}

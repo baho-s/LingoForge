@@ -1,0 +1,65 @@
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using VocabApp.Application.Words.Commands.BulkGenerate;
+using VocabApp.Application.Words.Commands.CreateWord;
+using VocabApp.Application.Words.Commands.RecordReview;
+using VocabApp.Application.Words.Dtos;
+using VocabApp.Application.Words.Queries.GetWordList;
+using VocabApp.Application.Words.Queries.GetWordOfDay;
+
+namespace VocabApp.API.Controllers;
+
+[ApiController]
+[Authorize]
+[Route("api/[controller]")]
+public sealed class WordsController : ControllerBase
+{
+    private readonly ISender _sender;
+
+    public WordsController(ISender sender)
+    {
+        _sender = sender;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<WordDto>>> GetList(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetWordListQuery(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<WordDto>> Create(CreateWordCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("bulk-generate")]
+    public async Task<ActionResult<BulkGenerateResult>> BulkGenerate(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new BulkGenerateSentencesCommand(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("{id:guid}/review")]
+    public async Task<ActionResult<WordDto>> RecordReview(
+        Guid id,
+        [FromBody] RecordReviewRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new RecordReviewCommand(id, request.Outcome);
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("word-of-day")]
+    public async Task<ActionResult<WordDto>> GetWordOfDay(CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new GetWordOfDayQuery(), cancellationToken);
+        return Ok(result);
+    }
+
+    public sealed record RecordReviewRequest(VocabApp.Domain.Enums.ReviewOutcome Outcome);
+}
