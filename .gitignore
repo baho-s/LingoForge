@@ -26,6 +26,7 @@ pnpm-debug.log*
 *.publishsettings
 appsettings.Development.json
 
+
 # =========================
 # IDE VE İŞLETİM SİSTEMİ
 # =========================
@@ -34,3 +35,4 @@ appsettings.Development.json
 .DS_Store
 Thumbs.db
 .github
+
