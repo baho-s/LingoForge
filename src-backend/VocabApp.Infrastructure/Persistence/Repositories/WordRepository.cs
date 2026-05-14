@@ -34,15 +34,12 @@ public sealed class WordRepository : IWordRepository
             .ToListAsync(ct);
     }
 
-    public Task<Word?> GetWordOfTheDayAsync(UserId ownerId, DateOnly date, CancellationToken ct = default)
+    public async Task<IReadOnlyList<Word>> GetByOwnerOrderedByDifficultyAsync(UserId ownerId, CancellationToken ct = default)
     {
-        var start = date.ToDateTime(TimeOnly.MinValue);
-        var end = date.ToDateTime(TimeOnly.MaxValue);
-
-        return _dbContext.Words
+        return await _dbContext.Words
             .Where(w => w.OwnerId == ownerId)
-            .OrderBy(w => w.Review.EaseFactor) // En zorlan�lan kelimeler en �ste
-            .FirstOrDefaultAsync(ct);
+            .OrderBy(w => w.Review.EaseFactor) // En zorlanılan kelimeler (düşük ease factor) önce
+            .ToListAsync(ct);
     }
 
     public void Add(Word word)

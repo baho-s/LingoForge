@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace VocabApp.API;
 
@@ -11,7 +13,12 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         services.AddHttpContextAccessor();
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            });
         services.AddHealthChecks();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
@@ -23,21 +30,23 @@ public static class DependencyInjection
                 Scheme = "bearer",
                 BearerFormat = "JWT",
                 In = ParameterLocation.Header,
-                Description = "Sadece Token",
-                Reference = new OpenApiReference // BU KISIM EKSÝKTÝ
+                Description = "Sadece Token Gerekli"
+            };
+
+            options.AddSecurityDefinition("Bearer", scheme);
+
+            var securityScheme = new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
                 {
                     Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 }
             };
 
-            options.AddSecurityDefinition("Bearer", scheme);
             options.AddSecurityRequirement(new OpenApiSecurityRequirement
             {
-                {
-                    scheme,
-                    Array.Empty<string>()
-                }
+                { securityScheme, new List<string>() }
             });
         });
         services.AddAuthorization();

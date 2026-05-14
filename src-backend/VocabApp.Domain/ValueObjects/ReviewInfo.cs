@@ -1,8 +1,9 @@
 namespace VocabApp.Domain.ValueObjects;
 
 public sealed record ReviewInfo(
-    int IntervalDays,//Kelimenin bir sonraki incelemesinin kaç gün sonra olduðunu gösterir. Ýnceleme sonuçlarýna göre bu deðer güncellenir. Kelime ne kadar iyi biliniyorsa, bu deðer o kadar artar.
-    float EaseFactor,//Kelimenin ne kadar zor olduðunu gösterir. 1.0'ün altýna düþmez, 2.5'ten baþlar, genellikle 2.5 civarýnda kalýr.
-    int Repetitions,//Kelimenin kaç kez baþarýyla tekrarlandýðýný gösterir. Her baþarýlý tekrar, kelimenin sonraki inceleme süresini artýrýr.
-    DateTime NextReviewAt//Bir sonraki inceleme tarihini gösterir. Ýnceleme sonuçlarýna göre bu tarih güncellenir. Kelime ne kadar iyi biliniyorsa, bu tarih o kadar ileriye atýlýr.
+    int IntervalDays,//Kelimenin bir sonraki incelemesinin kaï¿½ gï¿½n sonra olduï¿½unu gï¿½sterir. ï¿½nceleme sonuï¿½larï¿½na gï¿½re bu deï¿½er gï¿½ncellenir. Kelime ne kadar iyi biliniyorsa, bu deï¿½er o kadar artar.
+    float EaseFactor,//Kelimenin ne kadar zor olduï¿½unu gï¿½sterir. 1.0'ï¿½n altï¿½na dï¿½ï¿½mez, 2.5'ten baï¿½lar, genellikle 2.5 civarï¿½nda kalï¿½r.
+    int Repetitions,//Kelimenin kaï¿½ kez baï¿½arï¿½yla tekrarlandï¿½ï¿½ï¿½nï¿½ gï¿½sterir. Her baï¿½arï¿½lï¿½ tekrar, kelimenin sonraki inceleme sï¿½resini artï¿½rï¿½r.
+    DateTime NextReviewAt,//Bir sonraki inceleme tarihini gï¿½sterir. ï¿½nceleme sonuï¿½larï¿½na gï¿½re bu tarih gï¿½ncellenir. Kelime ne kadar iyi biliniyorsa, bu tarih o kadar ileriye atï¿½lï¿½r.
+    DateTime? LastReviewedAt//Son review tarihi. Kelimenin ne zaman incelendiÄŸini izlemek iÃ§in kullanÄ±lÄ±r.
 );

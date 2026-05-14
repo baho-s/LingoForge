@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LayoutDashboard, BookOpen, Brain, BarChart3, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/words', label: 'Words', icon: BookOpen },
-  { to: '/practice', label: 'Practice', icon: Brain },
-  { to: '/stats', label: 'Stats', icon: BarChart3 },
-];
-
 export default function Layout() {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+
+  const navItems = [
+    { to: '/', label: t('common.home'), icon: LayoutDashboard },
+    { to: '/words', label: t('words.myWords'), icon: BookOpen },
+    { to: '/practice', label: t('practice.practice'), icon: Brain },
+    { to: '/stats', label: t('stats.statistics'), icon: BarChart3 },
+  ];
 
   const handleLogout = () => {
     logout();
@@ -31,7 +33,7 @@ export default function Layout() {
     <div className="flex flex-col h-full">
       <div className="px-6 py-6">
         <h1 className="text-xl font-bold text-gray-900 tracking-tight">VocabApp</h1>
-        <p className="text-xs text-gray-400 mt-1">Build your vocabulary</p>
+        <p className="text-xs text-gray-400 mt-1">{t('common.home')}'ını geliştir</p>
       </div>
       <nav className="flex-1 px-3 space-y-1">
         {navItems.map((item) => (
@@ -53,7 +55,7 @@ export default function Layout() {
           className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full"
         >
           <LogOut size={18} />
-          Sign Out
+          {t('common.logout')}
         </button>
       </div>
     </div>

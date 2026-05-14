@@ -55,6 +55,7 @@ public sealed class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery
         return new DashboardDto(
             user.Streak,
             user.DailyGoal,
+            user.ReviewCount,
             user.LastActivity,
             badges,
             weekly);

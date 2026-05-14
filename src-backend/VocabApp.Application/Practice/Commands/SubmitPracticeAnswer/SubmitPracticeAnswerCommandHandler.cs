@@ -1,0 +1,97 @@
+using MediatR;
+using VocabApp.Application.Common.Exceptions;
+using VocabApp.Application.Common.Interfaces;
+using VocabApp.Application.Practice.Dtos;
+using VocabApp.Domain.Repositories;
+using VocabApp.Domain.ValueObjects;
+
+namespace VocabApp.Application.Practice.Commands.SubmitPracticeAnswer;
+
+public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitPracticeAnswerCommand, PracticeAnswerResponse>
+{
+    private readonly IWordRepository _wordRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly ICurrentUserService _currentUser;
+    private readonly IAiSentenceService _aiSentenceService;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public SubmitPracticeAnswerCommandHandler(
+        IWordRepository wordRepository,
+        IUserRepository userRepository,
+        ICurrentUserService currentUser,
+        IAiSentenceService aiSentenceService,
+        IUnitOfWork unitOfWork)
+    {
+        _wordRepository = wordRepository;
+        _userRepository = userRepository;
+        _currentUser = currentUser;
+        _aiSentenceService = aiSentenceService;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task<PracticeAnswerResponse> Handle(
+        SubmitPracticeAnswerCommand request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.UserAnswer))
+        {
+            return new PracticeAnswerResponse(false, 0, "Answer is required.");
+        }
+
+        if (!Guid.TryParse(request.QuestionId, out var questionId))
+        {
+            return new PracticeAnswerResponse(false, 0, "Invalid question id.");
+        }
+
+        var word = await _wordRepository.GetByIdAsync(new WordId(questionId), cancellationToken);
+        if (word is null)
+        {
+            return new PracticeAnswerResponse(false, 0, "Question not found.");
+        }
+
+        var userId = _currentUser.GetUserId();
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            throw new NotFoundException("User not found.");
+        }
+
+        if (string.Equals(request.Type, "ai_sentence", StringComparison.OrdinalIgnoreCase))
+        {
+            var sentence = word.AiSentence ?? word.Original;
+            var evaluation = await _aiSentenceService.EvaluateTranslationAsync(
+                sentence,
+                request.UserAnswer,
+                cancellationToken);
+
+            var isCorrect = evaluation.Score >= 70;
+            if (isCorrect)
+            {
+                user.RecordReview(DateTime.UtcNow);
+                _userRepository.Update(user);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
+            return new PracticeAnswerResponse(
+                isCorrect,
+                evaluation.Score,
+                evaluation.Feedback);
+        }
+
+        var answer = request.UserAnswer.Trim();
+        var isMatch = string.Equals(answer, word.Translation, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(answer, word.Original, StringComparison.OrdinalIgnoreCase);
+
+        if (isMatch)
+        {
+            user.RecordReview(DateTime.UtcNow);
+            _userRepository.Update(user);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        return new PracticeAnswerResponse(
+            isMatch,
+            isMatch ? 100 : 0,
+            isMatch ? "Correct!" : "Incorrect.");
+    }
+}

@@ -30,12 +30,15 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
         }
         var words = await _wordRepository.GetByOwnerAsync(userId, cancellationToken);
         var now = DateTime.UtcNow;
+        var oneWeekAgo = now.AddDays(-7);
 
         var totalWords = words.Count;
-        var withSentence = words.Count(word => word.AiSentence is not null);
-        var withoutSentence = totalWords - withSentence;
-        var dueToday = words.Count(word => word.Review.NextReviewAt <= now);
+        // Son 7 gün içinde review edilen (çalışılan) kelimeler
+        var wordsLearnedThisWeek = words.Count(word => 
+            word.Review.LastReviewedAt.HasValue && 
+            word.Review.LastReviewedAt >= oneWeekAgo);
+        var averageEaseFactor = words.Any() ? words.Average(word => word.Review.EaseFactor) : 0f;
 
-        return new StatsDto(totalWords, dueToday, withSentence, withoutSentence, user.ReviewCount);
+        return new StatsDto(totalWords, wordsLearnedThisWeek, averageEaseFactor);
     }
 }

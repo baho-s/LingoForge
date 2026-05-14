@@ -9,6 +9,7 @@ public sealed record WeeklyActivityPoint(DateOnly Date, int WordsAdded);
 public sealed record DashboardDto(
     int Streak,
     int DailyGoal,
+    int ReviewCount,
     DateTime LastActivity,
     IReadOnlyList<BadgeDto> Badges,
     IReadOnlyList<WeeklyActivityPoint> WeeklyActivity);

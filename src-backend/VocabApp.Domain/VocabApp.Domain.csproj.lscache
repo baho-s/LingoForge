@@ -54,6 +54,7 @@ TemporaryDependencyNodeTargetIdentifier=net8.0
 
 [sourceFiles]
 Aggregates/
+ PredefinedWord/PredefinedWord.cs
  User/User.cs
  Word/Word.cs
 Common/
@@ -74,16 +75,19 @@ obj/Debug/net8.0/
  VocabApp.Domain.AssemblyInfo.cs
  VocabApp.Domain.GlobalUsings.g.cs
 Repositories/
+ IPredefinedWordRepository.cs
  IUnitOfWork.cs
  IUserRepository.cs
  IWordRepository.cs
 ValueObjects/
+ Field.cs
+ PredefinedWordId.cs
  ReviewInfo.cs
  UserId.cs
  WordId.cs
 
 [metadataReferences]
-<NUGET>/microsoft.netcore.app.ref/8.0.22/ref/net8.0/
+<DOTNET>/packs/Microsoft.NETCore.App.Ref/8.0.26/ref/net8.0/
  Microsoft.CSharp.dll
  Microsoft.VisualBasic.Core.dll
  Microsoft.VisualBasic.dll
@@ -249,17 +253,17 @@ ValueObjects/
  WindowsBase.dll
 
 [analyzerReferences]
-<DOTNET>/sdk/10.0.101/Sdks/Microsoft.NET.Sdk/analyzers/
- Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll
- Microsoft.CodeAnalysis.NetAnalyzers.dll
-<NUGET>/microsoft.netcore.app.ref/8.0.22/analyzers/dotnet/cs/
+<DOTNET>/packs/Microsoft.NETCore.App.Ref/8.0.26/analyzers/dotnet/cs/
  Microsoft.Interop.ComInterfaceGenerator.dll
  Microsoft.Interop.JavaScript.JSImportGenerator.dll
  Microsoft.Interop.LibraryImportGenerator.dll
  Microsoft.Interop.SourceGeneration.dll
  System.Text.Json.SourceGeneration.dll
  System.Text.RegularExpressions.Generator.dll
+<DOTNET>/sdk/8.0.126/Sdks/Microsoft.NET.Sdk/analyzers/
+ Microsoft.CodeAnalysis.CSharp.NetAnalyzers.dll
+ Microsoft.CodeAnalysis.NetAnalyzers.dll
 
 [analyzerConfigFiles]
-<DOTNET>/sdk/10.0.101/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig
+<DOTNET>/sdk/8.0.126/Sdks/Microsoft.NET.Sdk/analyzers/build/config/analysislevel_8_default.globalconfig
 obj/Debug/net8.0/VocabApp.Domain.GeneratedMSBuildEditorConfig.editorconfig

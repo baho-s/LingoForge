@@ -26,6 +26,8 @@ export const authApi = {
 
 export const wordsApi = {
   getAll: () => client.get<WordDto[]>('/api/words'),
+  getReviewSessionWords: (limit: number = 8) =>
+    client.get<WordDto[]>('/api/words/review/session', { params: { limit } }),
   add: (payload: AddWordPayload) => client.post<WordDto>('/api/words', payload),
   bulkGenerate: () => client.post<BulkGenerateResult>('/api/words/bulk-generate'),
   review: (id: string, payload: ReviewPayload) =>
@@ -45,7 +47,7 @@ export const quizApi = {
 };
 
 export const practiceApi = {
-  getQuestions: (modes: PracticeMode[] = ['multiple_choice'], limit = 10) =>
+  getQuestions: (modes: PracticeMode[] = ['multiple_choice'], limit = 8) =>
     client.get<PracticeQuestionsResponse>('/api/practice/questions', {
       params: { mode: modes.join(','), limit },
     }),
@@ -57,4 +59,29 @@ export const practiceApi = {
 
 export const statsApi = {
   get: () => client.get<StatsDto>('/api/stats'),
+};
+
+export const predefinedWordsApi = {
+  getFields: () =>
+    client.get<{ fields: string[] }>('/api/PredefinedWords/fields'),
+  getWordsByField: (field: string) =>
+    client.get<{
+      field: string;
+      totalCount: number;
+      words: Array<{
+        id: string;
+        field: string;
+        category?: string;
+        original: string;
+        translation: string;
+        aiSentence?: string;
+      }>;
+    }>(`/api/PredefinedWords/fields/${field}`),
+  importField: (field: string) =>
+    client.post<{
+      success: boolean;
+      fieldName: string;
+      importedCount: number;
+      message: string;
+    }>('/api/PredefinedWords/import-field', { field }),
 };

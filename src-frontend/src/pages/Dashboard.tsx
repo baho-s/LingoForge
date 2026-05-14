@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Flame, Target, Sparkles, Brain, Plus, BookOpen } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { dashboardApi } from '../api/endpoints';
@@ -7,11 +8,21 @@ import type { DashboardDto, WordDto } from '../types';
 import { SkeletonCard, SkeletonBar } from '../components/Skeleton';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [dashboard, setDashboard] = useState<DashboardDto | null>(null);
   const [wordOfDay, setWordOfDay] = useState<WordDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const fetchWordOfDay = async () => {
+    try {
+      const { data } = await dashboardApi.getWordOfDay();
+      setWordOfDay(data);
+    } catch {
+      console.error('Failed to fetch word of day');
+    }
+  };
 
   useEffect(() => {
     const fetch = async () => {
@@ -23,13 +34,17 @@ export default function Dashboard() {
         setDashboard(dashRes.data);
         setWordOfDay(wodRes.data);
       } catch {
-        setError('Failed to load dashboard data.');
+        setError(t('dashboard.failedToLoadDashboard'));
       } finally {
         setLoading(false);
       }
     };
     fetch();
-  }, []);
+
+    // Her 20 dakikada bir kelimeyi yenile (1200000 ms = 20 dakika)
+    const interval = setInterval(fetchWordOfDay, 20 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [t]);
 
   if (error) {
     return (
@@ -43,12 +58,12 @@ export default function Dashboard() {
   const weeklyActivity = dashboard?.weeklyActivity ?? [];
   const goalProgress = dailyGoal > 0 ? Math.min((wordsReviewedToday / dailyGoal) * 100, 100) : 0;
 
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayLabels = ['Pz', 'Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Cm'];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('dashboard.welcomeBack')}</h2>
       </div>
 
       {/* Word of the Day */}
@@ -58,8 +73,8 @@ export default function Dashboard() {
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles size={18} className="text-blue-600" />
-            <span className="text-sm font-semibold text-blue-600">Word of the Day</span>
-            <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">New</span>
+            <span className="text-sm font-semibold text-blue-600">{t('dashboard.wordOfTheDay')}</span>
+            <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">{t('dashboard.new')}</span>
           </div>
           <div className="flex flex-col md:flex-row md:items-center gap-4">
             <div>
@@ -78,12 +93,12 @@ export default function Dashboard() {
           <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
             <BookOpen size={20} className="text-gray-400" />
           </div>
-          <p className="text-sm text-gray-500">No words yet. Add your first word to get started!</p>
+          <p className="text-sm text-gray-500">{t('dashboard.noWordsYet')}</p>
           <button
             onClick={() => navigate('/words')}
             className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
           >
-            <Plus size={16} /> Add Word
+            <Plus size={16} /> {t('dashboard.addWord')}
           </button>
         </div>
       )}
@@ -105,7 +120,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{streak}</p>
-                  <p className="text-xs text-gray-500">Day Streak</p>
+                  <p className="text-xs text-gray-500">{t('dashboard.dayStreak')}</p>
                 </div>
               </div>
             </div>
@@ -116,7 +131,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{wordsReviewedToday}<span className="text-sm font-normal text-gray-400">/{dailyGoal}</span></p>
-                  <p className="text-xs text-gray-500">Daily Goal</p>
+                  <p className="text-xs text-gray-500">{t('dashboard.dailyGoal')}</p>
                 </div>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
@@ -126,7 +141,7 @@ export default function Dashboard() {
                 />
               </div>
               <p className="text-xs text-gray-400 mt-1.5">
-                {goalProgress >= 100 ? 'Goal reached!' : `${Math.round(goalProgress)}% complete`}
+                {goalProgress >= 100 ? t('dashboard.goalReached') : `${Math.round(goalProgress)}${t('dashboard.complete')}`}
               </p>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
@@ -136,7 +151,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{dashboard?.badges?.length ?? 0}</p>
-                  <p className="text-xs text-gray-500">Badges Earned</p>
+                  <p className="text-xs text-gray-500">{t('dashboard.badgesEarned')}</p>
                 </div>
               </div>
             </div>
@@ -155,8 +170,8 @@ export default function Dashboard() {
               <Brain size={24} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Start Review</p>
-              <p className="text-xs text-gray-500">Practice your due words</p>
+              <p className="text-sm font-semibold text-gray-900">{t('dashboard.startReview')}</p>
+              <p className="text-xs text-gray-500">{t('dashboard.practiceYourDueWords')}</p>
             </div>
           </button>
           <button
@@ -167,8 +182,8 @@ export default function Dashboard() {
               <Plus size={24} className="text-green-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">Add New Word</p>
-              <p className="text-xs text-gray-500">Expand your vocabulary</p>
+              <p className="text-sm font-semibold text-gray-900">{t('dashboard.addNewWord')}</p>
+              <p className="text-xs text-gray-500">{t('dashboard.expandYourVocabulary')}</p>
             </div>
           </button>
         </div>
@@ -176,7 +191,7 @@ export default function Dashboard() {
 
       {/* Weekly Activity */}
       <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-        <h3 className="text-sm font-semibold text-gray-900 mb-4">Weekly Activity</h3>
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">{t('dashboard.weeklyActivity')}</h3>
         {loading ? (
           <SkeletonBar />
         ) : weeklyActivity.length > 0 ? (
@@ -194,7 +209,7 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-sm text-gray-400">No activity this week yet.</p>
+          <p className="text-sm text-gray-400">{t('dashboard.noActivityThisWeek')}</p>
         )}
       </div>
     </div>

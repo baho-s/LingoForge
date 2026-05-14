@@ -5,6 +5,22 @@ using VocabApp.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 1. CORS POLİTİKASINI BURAYA EKLİYORUZ (builder.Build() satırından önce)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowVercel",
+        policy =>
+        {
+            policy.WithOrigins(
+                "https://lingo-forge-iota.vercel.app/", // Canlı linkin dursun
+                "http://localhost:5173"                   // VİRGÜL KOYUP BUNU EKLE (Vite'ın varsayılan portu)
+            ) 
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials(); // Auth kullanıyorsan
+        });
+});
+
 builder.Services
     .AddApplicationServices()
     .AddInfrastructureServices(builder.Configuration)
@@ -19,7 +35,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors();
+
+
+app.UseCors("AllowVercel");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ExceptionHandlingMiddleware>();

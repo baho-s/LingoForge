@@ -27,7 +27,8 @@ public sealed class Word : AggregateRoot<WordId>
             IntervalDays: 0,
             EaseFactor: 2.5f,
             Repetitions: 0,
-            NextReviewAt: DateTime.UtcNow
+            NextReviewAt: DateTime.UtcNow,
+            LastReviewedAt: null
         );
     }
 
@@ -68,6 +69,7 @@ public sealed class Word : AggregateRoot<WordId>
         var repetitions = current.Repetitions;
         var easeFactor = current.EaseFactor;
         var intervalDays = current.IntervalDays;
+        var now = DateTime.UtcNow;
 
         if (outcome == ReviewOutcome.Again)
         {
@@ -94,7 +96,7 @@ public sealed class Word : AggregateRoot<WordId>
             };
         }
 
-        var nextReviewAt = DateTime.UtcNow.AddDays(intervalDays);
-        return new ReviewInfo(intervalDays, easeFactor, repetitions, nextReviewAt);
+        var nextReviewAt = now.AddDays(intervalDays);
+        return new ReviewInfo(intervalDays, easeFactor, repetitions, nextReviewAt, now);
     }
 }

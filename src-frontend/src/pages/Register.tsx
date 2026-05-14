@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { authApi } from '../api/endpoints';
 import { useAuthStore } from '../store/auth';
 import { useToast } from '../components/Toast';
 
 export default function Register() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,18 +27,18 @@ export default function Register() {
 
   const passwordStrength = useMemo(() => {
     const score = Object.values(passwordChecks).filter(Boolean).length;
-    if (score <= 1) return { label: 'Weak', color: 'bg-red-500', width: '25%' };
-    if (score === 2) return { label: 'Fair', color: 'bg-orange-500', width: '50%' };
-    if (score === 3) return { label: 'Good', color: 'bg-yellow-500', width: '75%' };
-    return { label: 'Strong', color: 'bg-green-500', width: '100%' };
+    if (score <= 1) return { label: 'Zayıf', color: 'bg-red-500', width: '25%' };
+    if (score === 2) return { label: 'Orta', color: 'bg-orange-500', width: '50%' };
+    if (score === 3) return { label: 'İyi', color: 'bg-yellow-500', width: '75%' };
+    return { label: 'Güçlü', color: 'bg-green-500', width: '100%' };
   }, [passwordChecks]);
 
   const validate = (): string | null => {
-    if (!email.trim()) return 'Email is required.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.';
-    if (!password) return 'Password is required.';
-    if (password.length < 6) return 'Password must be at least 6 characters.';
-    if (password !== confirmPassword) return 'Passwords do not match.';
+    if (!email.trim()) return t('auth.invalidEmail');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t('auth.invalidEmail');
+    if (!password) return 'Şifre gerekli.';
+    if (password.length < 6) return t('auth.passwordTooShort');
+    if (password !== confirmPassword) return t('auth.passwordsMustMatch');
     return null;
   };
 
@@ -53,14 +55,14 @@ export default function Register() {
       const { data } = await authApi.register(email, password);
       const token = data.token ?? (data as { Token?: string }).Token;
       if (!token) {
-        setError('Registration failed. Token was not returned.');
+        setError(t('auth.registerFailed'));
         return;
       }
       login(token);
-      addToast('Account created successfully!', 'success');
+      addToast('Hesap başarıyla oluşturuldu!', 'success');
       navigate('/');
     } catch {
-      setError('Registration failed. This email may already be in use.');
+      setError(t('auth.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -71,26 +73,26 @@ export default function Register() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">VocabApp</h1>
-          <p className="text-gray-500 mt-2">Create your account</p>
+          <p className="text-gray-500 mt-2">Hesabını oluştur</p>
         </div>
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-8 space-y-5">
           {error && (
             <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.email')}</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              placeholder="you@example.com"
+              placeholder="sen@ornek.com"
               autoFocus
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.password')}</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -118,10 +120,10 @@ export default function Register() {
                 </div>
                 <div className="grid grid-cols-2 gap-1">
                   {[
-                    { label: '6+ characters', met: passwordChecks.length },
-                    { label: 'Uppercase letter', met: passwordChecks.uppercase },
-                    { label: 'Lowercase letter', met: passwordChecks.lowercase },
-                    { label: 'Number', met: passwordChecks.number },
+                    { label: '6+ karakter', met: passwordChecks.length },
+                    { label: 'Büyük harf', met: passwordChecks.uppercase },
+                    { label: 'Küçük harf', met: passwordChecks.lowercase },
+                    { label: 'Sayı', met: passwordChecks.number },
                   ].map((check) => (
                     <div key={check.label} className="flex items-center gap-1.5 text-xs">
                       {check.met ? <Check size={12} className="text-green-500" /> : <X size={12} className="text-gray-300" />}
@@ -133,7 +135,7 @@ export default function Register() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('auth.confirmPassword')}</label>
             <input
               type="password"
               required
@@ -142,10 +144,10 @@ export default function Register() {
               className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition ${
                 confirmPassword && password !== confirmPassword ? 'border-red-300' : 'border-gray-200'
               }`}
-              placeholder="Confirm your password"
+              placeholder="Şifreni onayla"
             />
             {confirmPassword && password !== confirmPassword && (
-              <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+              <p className="text-xs text-red-500 mt-1">Şifreler eşleşmiyor</p>
             )}
           </div>
           <button
@@ -153,13 +155,10 @@ export default function Register() {
             disabled={loading || (confirmPassword.length > 0 && password !== confirmPassword)}
             className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Hesap oluşturuluyor...' : t('auth.registerButton')}
           </button>
           <p className="text-center text-sm text-gray-500">
-            Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 font-medium hover:underline">
-              Sign in
-            </Link>
+            {t('auth.haveAccount')} <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">{t('auth.login')}</Link>
           </p>
         </form>
       </div>

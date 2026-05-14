@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Plus, Sparkles, X, Loader2, ArrowUpDown, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Search, Plus, Sparkles, X, Loader2, ArrowUpDown, AlertTriangle, BookOpen } from 'lucide-react';
 import { wordsApi } from '../api/endpoints';
 import { useToast } from '../components/Toast';
-import type { WordDto, BulkGenerateResult } from '../types';
+import FieldImportModal from '../components/FieldImportModal';
+import type { WordDto } from '../types';
 import { SkeletonCard } from '../components/Skeleton';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12,6 +14,7 @@ type SortDir = 'asc' | 'desc';
 type FilterKey = 'all' | 'due' | 'notDue';
 
 export default function Words() {
+  const { t } = useTranslation();
   const [words, setWords] = useState<WordDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,6 +38,9 @@ export default function Words() {
   // Bulk generate
   const [bulkLoading, setBulkLoading] = useState(false);
 
+  // Field import modal
+  const [showFieldImport, setShowFieldImport] = useState(false);
+
   const { addToast } = useToast();
 
   const fetchWords = async () => {
@@ -42,7 +48,7 @@ export default function Words() {
       const { data } = await wordsApi.getAll();
       setWords(data);
     } catch {
-      setError('Failed to load words.');
+      setError(t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -102,9 +108,9 @@ export default function Words() {
       setAddTranslation('');
       setAddAiSentence(true);
       await fetchWords();
-      addToast('Word added successfully!', 'success');
+      addToast(t('words.addWordSuccess'), 'success');
     } catch {
-      addToast('Failed to add word.', 'error');
+      addToast(t('common.error'), 'error');
     } finally {
       setAdding(false);
     }
@@ -115,12 +121,17 @@ export default function Words() {
     try {
       const { data } = await wordsApi.bulkGenerate();
       await fetchWords();
-      addToast(`Generated ${data.generated} sentences. Skipped ${data.skipped}.`, 'success');
+      addToast(`${data.generated} cümle oluşturuldu. ${data.skipped} atlandı.`, 'success');
     } catch {
-      addToast('Bulk generation failed.', 'error');
+      addToast(t('common.error'), 'error');
     } finally {
       setBulkLoading(false);
     }
+  };
+
+  const handleFieldImportSuccess = async (fieldName: string, importedCount: number) => {
+    await fetchWords();
+    addToast(`${importedCount} kelime "${fieldName}" alanından eklendi!`, 'success');
   };
 
   const handleDelete = async (id: string) => {
@@ -128,9 +139,9 @@ export default function Words() {
     try {
       await wordsApi.delete(id);
       setWords((prev) => prev.filter((w) => w.id !== id));
-      addToast('Word deleted.', 'success');
+      addToast(t('words.deleteWordSuccess'), 'success');
     } catch {
-      addToast('Failed to delete word.', 'error');
+      addToast(t('common.error'), 'error');
     }
     setDeleteTarget(null);
   };
@@ -145,24 +156,31 @@ export default function Words() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Words</h2>
-          <p className="text-sm text-gray-500 mt-1">{words.length} words total, {dueCount} due for review</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('words.myWords')}</h2>
+          <p className="text-sm text-gray-500 mt-1">{words.length} kelime toplam, {dueCount} tekrar için hazır</p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => setShowFieldImport(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
+          >
+            <BookOpen size={16} />
+            Alan Kelimeleri
+          </button>
           <button
             onClick={handleBulkGenerate}
             disabled={bulkLoading}
             className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
           >
             {bulkLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            Generate AI Sentences
+            AI Cümlesi Oluştur
           </button>
           <button
             onClick={() => setShowAdd(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             <Plus size={16} />
-            Add Word
+            {t('words.addWord')}
           </button>
         </div>
       </div>
@@ -180,7 +198,7 @@ export default function Words() {
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search words..."
+            placeholder={t('words.searchWords')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
@@ -192,9 +210,9 @@ export default function Words() {
             onChange={(e) => setFilter(e.target.value as FilterKey)}
             className="px-3 py-3 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">All words</option>
-            <option value="due">Due for review</option>
-            <option value="notDue">Not due</option>
+            <option value="all">Tüm Kelimeler</option>
+            <option value="due">Tekrar için Hazır</option>
+            <option value="notDue">Hazır Değil</option>
           </select>
           <button
             onClick={() => toggleSort(sortKey)}
@@ -207,9 +225,9 @@ export default function Words() {
               onClick={(e) => e.stopPropagation()}
               className="bg-transparent focus:outline-none cursor-pointer"
             >
-              <option value="createdAt">Date added</option>
-              <option value="original">Alphabetical</option>
-              <option value="nextReviewAt">Next review</option>
+              <option value="createdAt">Eklenme Tarihi</option>
+              <option value="original">Alfabetik</option>
+              <option value="nextReviewAt">Sonraki Tekrar</option>
             </select>
             <span className="text-xs text-gray-400">{sortDir === 'asc' ? 'ASC' : 'DESC'}</span>
           </button>
@@ -227,7 +245,7 @@ export default function Words() {
             <Search size={24} className="text-gray-300" />
           </div>
           <p className="text-gray-500 text-sm">
-            {search ? 'No words match your search.' : 'No words yet. Add your first word!'}
+            {search ? 'Aramanla eşleşen kelime yok.' : t('words.noWordsAdded')}
           </p>
         </div>
       ) : (
@@ -243,7 +261,7 @@ export default function Words() {
                   <h3 className="text-lg font-semibold text-gray-900">{word.original}</h3>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isDue ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                      {isDue ? 'Due' : 'Scheduled'}
+                      {isDue ? 'Hazır' : 'Planlandı'}
                     </span>
                     <button
                       onClick={() => setDeleteTarget(word)}
@@ -260,7 +278,7 @@ export default function Words() {
                   </p>
                 )}
                 <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                  <span>Next review: {new Date(word.nextReviewAt).toLocaleDateString()}</span>
+                  <span>Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}</span>
                 </div>
               </div>
             );
@@ -274,30 +292,30 @@ export default function Words() {
           <div className="fixed inset-0 bg-black/30" onClick={() => setShowAdd(false)} />
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Add New Word</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t('words.addNewWord')}</h3>
               <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
               </button>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">English Word</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('words.english')}</label>
               <input
                 type="text"
                 value={addOriginal}
                 onChange={(e) => setAddOriginal(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g. serendipity"
+                placeholder="örn. serendipity"
                 autoFocus
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Translation</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('words.translation')}</label>
               <input
                 type="text"
                 value={addTranslation}
                 onChange={(e) => setAddTranslation(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g. serendipidad"
+                placeholder="örn. tesadüfi iyi şans"
               />
             </div>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -307,14 +325,14 @@ export default function Words() {
                 onChange={(e) => setAddAiSentence(e.target.checked)}
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-700">Generate AI Sentence</span>
+              <span className="text-sm text-gray-700">AI Cümlesi Oluştur</span>
             </label>
             <button
               onClick={handleAdd}
               disabled={adding || !addOriginal.trim() || !addTranslation.trim()}
               className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
-              {adding ? 'Adding...' : 'Add Word'}
+              {adding ? 'Ekleniyor...' : t('words.addWord')}
             </button>
           </div>
         </div>
@@ -330,9 +348,9 @@ export default function Words() {
                 <AlertTriangle size={20} className="text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Word</h3>
+                <h3 className="text-lg font-semibold text-gray-900">Kelime Sil</h3>
                 <p className="text-sm text-gray-500">
-                  Are you sure you want to delete "<span className="font-medium text-gray-700">{deleteTarget.original}</span>"? This cannot be undone.
+                  "<span className="font-medium text-gray-700">{deleteTarget.original}</span>" kelimesini silmek istediğine emin misin? Bu işlem geri alınamaz.
                 </p>
               </div>
             </div>
@@ -341,13 +359,13 @@ export default function Words() {
                 onClick={() => setDeleteTarget(null)}
                 className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
               >
-                Cancel
+                {t('words.cancel')}
               </button>
               <button
                 onClick={() => handleDelete(deleteTarget.id)}
                 className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors"
               >
-                Delete
+                Sil
               </button>
             </div>
           </div>
@@ -359,10 +377,18 @@ export default function Words() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
           <div className="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center gap-4">
             <Loader2 size={32} className="animate-spin text-blue-600" />
-            <p className="text-sm text-gray-600 font-medium">Generating AI sentences...</p>
+            <p className="text-sm text-gray-600 font-medium">AI Cümleler oluşturuluyor...</p>
           </div>
         </div>
       )}
+
+      {/* Field Import Modal */}
+      <FieldImportModal
+        isOpen={showFieldImport}
+        onClose={() => setShowFieldImport(false)}
+        onImportSuccess={handleFieldImportSuccess}
+        onError={(msg) => addToast(msg, 'error')}
+      />
     </div>
   );
 }

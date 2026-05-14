@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Target, TrendingUp } from 'lucide-react';
 import { statsApi } from '../api/endpoints';
 import type { StatsDto } from '../types';
 import { SkeletonCard } from '../components/Skeleton';
 
-const statCards = [
-  { key: 'totalWords' as const, label: 'Total Words', icon: BookOpen, color: 'bg-blue-50 text-blue-600' },
-  { key: 'wordsLearnedThisWeek' as const, label: 'Learned This Week', icon: TrendingUp, color: 'bg-green-50 text-green-600' },
-  { key: 'averageEaseFactor' as const, label: 'Average Ease', icon: Target, color: 'bg-amber-50 text-amber-600', suffix: '' },
-];
-
 export default function Stats() {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<StatsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const statCards = [
+    { key: 'totalWords' as const, label: t('stats.totalWords'), icon: BookOpen, color: 'bg-blue-50 text-blue-600' },
+    { key: 'wordsLearnedThisWeek' as const, label: t('stats.wordsLearnedThisWeek'), icon: TrendingUp, color: 'bg-green-50 text-green-600' },
+    { key: 'averageEaseFactor' as const, label: t('stats.averageEaseFactor'), icon: Target, color: 'bg-amber-50 text-amber-600', suffix: '' },
+  ];
 
   useEffect(() => {
     const fetch = async () => {
@@ -21,7 +23,7 @@ export default function Stats() {
         const { data } = await statsApi.get();
         setStats(data);
       } catch {
-        setError('Failed to load statistics.');
+        setError(t('common.error'));
       } finally {
         setLoading(false);
       }
@@ -39,7 +41,7 @@ export default function Stats() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900">Statistics</h2>
+      <h2 className="text-2xl font-bold text-gray-900">{t('stats.statistics')}</h2>
 
       {/* Main stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -69,7 +71,7 @@ export default function Stats() {
           <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <BookOpen size={24} className="text-gray-300" />
           </div>
-          <p className="text-gray-500 text-sm">No statistics yet. Start adding words and reviewing!</p>
+          <p className="text-gray-500 text-sm">Henüz istatistik yok. Kelime eklemeye ve tekrar etmeye başla!</p>
         </div>
       )}
     </div>

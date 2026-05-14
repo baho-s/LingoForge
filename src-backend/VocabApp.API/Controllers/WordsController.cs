@@ -7,6 +7,7 @@ using VocabApp.Application.Words.Commands.RecordReview;
 using VocabApp.Application.Words.Dtos;
 using VocabApp.Application.Words.Queries.GetWordList;
 using VocabApp.Application.Words.Queries.GetWordOfDay;
+using VocabApp.Application.Words.Queries.GetReviewSessionWords;
 
 namespace VocabApp.API.Controllers;
 
@@ -26,6 +27,15 @@ public sealed class WordsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<WordDto>>> GetList(CancellationToken cancellationToken)
     {
         var result = await _sender.Send(new GetWordListQuery(), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("review/session")]
+    public async Task<ActionResult<IReadOnlyList<WordDto>>> GetReviewSessionWords(
+        [FromQuery] int limit = 8,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(new GetReviewSessionWordsQuery(limit), cancellationToken);
         return Ok(result);
     }
 

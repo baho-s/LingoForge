@@ -47,6 +47,7 @@ public sealed class WordConfiguration : IEntityTypeConfiguration<Word>
             review.Property(r => r.EaseFactor).HasColumnName("ReviewEaseFactor");
             review.Property(r => r.Repetitions).HasColumnName("ReviewRepetitions");
             review.Property(r => r.NextReviewAt).HasColumnName("ReviewNextReviewAt");
+            review.Property(r => r.LastReviewedAt).HasColumnName("ReviewLastReviewedAt");
         });
 
         builder.HasIndex(word => new { word.OwnerId, word.CreatedAt });

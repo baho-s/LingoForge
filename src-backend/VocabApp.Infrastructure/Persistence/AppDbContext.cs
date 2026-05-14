@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using VocabApp.Domain.Aggregates.PredefinedWordAggregate;
 using VocabApp.Domain.Aggregates.UserAggregate;
 using VocabApp.Domain.Aggregates.WordAggregate;
 
@@ -13,6 +14,7 @@ public sealed class AppDbContext : DbContext
 
     public DbSet<Word> Words => Set<Word>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<PredefinedWord> PredefinedWords => Set<PredefinedWord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

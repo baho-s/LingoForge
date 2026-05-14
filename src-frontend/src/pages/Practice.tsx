@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Brain, ArrowLeft, Loader2, AlertCircle, ListChecks, PenSquare, Sparkles } from 'lucide-react';
 import { wordsApi, practiceApi } from '../api/endpoints';
 import { useToast } from '../components/Toast';
@@ -10,6 +11,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 type Mode = 'select' | 'review' | 'practice';
 
 export default function Practice() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('select');
 
   // Review state
@@ -40,20 +42,19 @@ export default function Practice() {
     setError('');
     setReviewComplete(false);
     try {
-      const { data } = await wordsApi.getAll();
-      const due = data.filter((w) => new Date(w.nextReviewAt) <= new Date());
-      if (due.length === 0) {
-        setError('No words due for review right now. Great job!');
+      const { data } = await wordsApi.getReviewSessionWords(8);
+      if (data.length === 0) {
+        setError(t('practice.noDueWords'));
         setReviewLoading(false);
         return;
       }
-      setReviewWords(due);
+      setReviewWords(data);
       setReviewIndex(0);
       setFlipped(false);
       setReviewedCount(0);
       setMode('review');
     } catch {
-      setError('Failed to load review words.');
+      setError(t('common.error'));
     } finally {
       setReviewLoading(false);
     }
@@ -70,13 +71,13 @@ export default function Practice() {
   const getPracticeModeLabel = (m: PracticeMode) => {
     switch (m) {
       case 'multiple_choice':
-        return 'Multiple Choice';
+        return t('practice.selectCorrectAnswer');
       case 'spelling':
-        return 'Spelling';
+        return t('practice.typeYourAnswer');
       case 'ai_sentence':
-        return 'AI Comprehension';
+        return 'AI Cümle Anlama';
       default:
-        return 'Practice';
+        return t('practice.practice');
     }
   };
 
@@ -87,9 +88,9 @@ export default function Practice() {
     setPracticeMode(m);
     setError('');
     try {
-      const { data } = await practiceApi.getQuestions([m], 10);
+      const { data } = await practiceApi.getQuestions([m], 8);
       if (!data.questions.length) {
-        setError('No practice questions available right now.');
+        setError(t('practice.noPracticeQuestions'));
         return;
       }
       setPracticeQuestions(data.questions);
@@ -98,7 +99,7 @@ export default function Practice() {
       resetPracticeUi();
       setMode('practice');
     } catch {
-      setError('Failed to load practice questions.');
+      setError(t('common.error'));
     } finally {
       setPracticeLoading(false);
     }
@@ -110,26 +111,26 @@ export default function Practice() {
     try {
       await wordsApi.review(word.id, { outcome });
     } catch {
-      addToast('Failed to save review result. Your progress may not be saved.', 'error');
+      addToast(t('common.error'), 'error');
     }
     const nextReviewed = reviewedCount + 1;
     setReviewedCount(nextReviewed);
     const next = reviewIndex + 1;
     if (next >= reviewWords.length) {
       setReviewComplete(true);
-      addToast(`Review session complete! ${nextReviewed} words reviewed.`, 'success');
+      addToast(`${nextReviewed} kelime tekrar tamamlandı!`, 'success');
       return;
     }
     setReviewIndex(next);
     setFlipped(false);
-  }, [reviewWords, reviewIndex, reviewedCount, addToast]);
+  }, [reviewWords, reviewIndex, reviewedCount, addToast, t]);
 
   const handlePracticeOption = async (question: PracticeQuestion, option: string) => {
     if (practiceSubmitted || question.type !== 'multiple_choice') return;
     const isCorrect = option === question.correct_answer;
     setPracticeSelectedOption(option);
     setPracticeSubmitted(true);
-    setPracticeFeedback({ is_correct: isCorrect, feedback: isCorrect ? 'Correct!' : 'Incorrect.' });
+    setPracticeFeedback({ is_correct: isCorrect, feedback: isCorrect ? t('practice.correct') : t('practice.incorrect') });
     if (isCorrect) setPracticeCorrectCount((count) => count + 1);
     try {
       const { data } = await practiceApi.submitAnswer({
@@ -139,7 +140,7 @@ export default function Practice() {
       });
       setPracticeFeedback(data);
     } catch {
-      addToast('Failed to submit answer. Your progress may not be saved.', 'error');
+      addToast(t('common.error'), 'error');
     }
   };
 
@@ -149,7 +150,7 @@ export default function Practice() {
     setPracticeSubmitted(true);
     setPracticeFeedback({
       is_correct: isCorrect,
-      feedback: isCorrect ? 'Correct!' : `Correct answer: ${question.correct_answer}`,
+      feedback: isCorrect ? t('practice.correct') : `Doğru cevap: ${question.correct_answer}`,
     });
     if (isCorrect) setPracticeCorrectCount((count) => count + 1);
     try {
@@ -160,7 +161,7 @@ export default function Practice() {
       });
       setPracticeFeedback(data);
     } catch {
-      addToast('Failed to submit answer. Your progress may not be saved.', 'error');
+      addToast(t('common.error'), 'error');
     }
   };
 
@@ -179,9 +180,9 @@ export default function Practice() {
     } catch {
       setPracticeFeedback({
         is_correct: false,
-        feedback: 'Failed to submit answer. You can continue to the next question.',
+        feedback: 'Cevap gönderilemedi. Sonraki soruya geçebilirsin.',
       });
-      addToast('Failed to submit answer. Your progress may not be saved.', 'error');
+      addToast(t('common.error'), 'error');
     } finally {
       setPracticeBusy(false);
     }
@@ -223,7 +224,7 @@ export default function Practice() {
   if (mode === 'select') {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
-        <h2 className="text-2xl font-bold text-gray-900">Practice</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('practice.practice')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             onClick={startReview}
@@ -233,8 +234,8 @@ export default function Practice() {
             <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center mb-4 group-hover:bg-blue-100 transition-colors">
               <Brain size={24} className="text-blue-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Review Session</h3>
-            <p className="text-sm text-gray-500">Spaced repetition flashcards for words due today</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Tekrar Oturumu</h3>
+            <p className="text-sm text-gray-500">Bugün tekrar için hazır olan kelimeleri kartlarla tekrar et</p>
           </button>
           <button
             onClick={() => startPractice('multiple_choice')}
@@ -244,8 +245,8 @@ export default function Practice() {
             <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center mb-4 group-hover:bg-green-100 transition-colors">
               <ListChecks size={24} className="text-green-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Multiple Choice</h3>
-            <p className="text-sm text-gray-500">Pick the correct translation from four options</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Çoktan Seçmeli</h3>
+            <p className="text-sm text-gray-500">Dört seçenekten doğru çeviriyi seç</p>
           </button>
           <button
             onClick={() => startPractice('spelling')}
@@ -255,8 +256,8 @@ export default function Practice() {
             <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mb-4 group-hover:bg-amber-100 transition-colors">
               <PenSquare size={24} className="text-amber-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Spelling</h3>
-            <p className="text-sm text-gray-500">Type the word to test active recall</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Yazma Egzersizi</h3>
+            <p className="text-sm text-gray-500">Kelimeyi yazarak aktif hatırlama becerisini test et</p>
           </button>
           <button
             onClick={() => startPractice('ai_sentence')}
@@ -266,8 +267,8 @@ export default function Practice() {
             <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mb-4 group-hover:bg-teal-100 transition-colors">
               <Sparkles size={24} className="text-teal-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">AI Comprehension</h3>
-            <p className="text-sm text-gray-500">Read a sentence and write the meaning in Turkish</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">AI Cümle Anlama</h3>
+            <p className="text-sm text-gray-500">Cümleyi oku ve anlamını Türkçe olarak yaz</p>
           </button>
         </div>
         {(reviewLoading || practiceLoading) && (

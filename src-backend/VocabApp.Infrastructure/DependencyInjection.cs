@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<ICacheService, MemoryCacheService>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IWordRepository, WordRepository>();
+        services.AddScoped<IPredefinedWordRepository, PredefinedWordRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
