@@ -45,6 +45,11 @@ export default function Words() {
   // Field import modal
   const [showFieldImport, setShowFieldImport] = useState(false);
 
+  // Pagination per field
+  const [displayedCountByField, setDisplayedCountByField] = useState<Map<string, number>>(
+    new Map()
+  );
+
   const { addToast } = useToast();
 
   const fetchWords = async () => {
@@ -98,6 +103,8 @@ export default function Words() {
 
   const dueCount = words.filter((w) => new Date(w.nextReviewAt) <= now).length;
 
+  const ITEMS_PER_LOAD = 3;
+
   const groupedByField = useMemo(() => {
     const groups = new Map<string, WordDto[]>();
     groups.set('_no_field', []);
@@ -110,6 +117,15 @@ export default function Words() {
 
     return groups;
   }, [filtered]);
+
+  const handleLoadMore = (field: string) => {
+    setDisplayedCountByField((prev) => {
+      const newMap = new Map(prev);
+      const current = newMap.get(field) || ITEMS_PER_LOAD;
+      newMap.set(field, current + ITEMS_PER_LOAD);
+      return newMap;
+    });
+  };
 
   const handleAdd = async () => {
     if (!addOriginal.trim() || !addTranslation.trim()) return;
@@ -301,47 +317,62 @@ export default function Words() {
               )}
               {field === '_no_field' && fieldWords.length > 0 && (
                 <div className="mb-4 pb-2 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Alan Tanımlanmamış</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Sizin Kelimeleriniz</h3>
                   <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
                 </div>
               )}
 
               {/* Words Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {fieldWords.map((word) => {
-                  const isDue = new Date(word.nextReviewAt) <= now;
-                  return (
-                    <div
-                      key={word.id}
-                      className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-shadow group"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{word.original}</h3>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isDue ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                            {isDue ? 'Hazır' : 'Planlandı'}
-                          </span>
-                          <button
-                            onClick={() => setDeleteTarget(word)}
-                            className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"
-                          >
-                            <X size={16} />
-                          </button>
+                {fieldWords
+                  .slice(0, displayedCountByField.get(field) || ITEMS_PER_LOAD)
+                  .map((word) => {
+                    const isDue = new Date(word.nextReviewAt) <= now;
+                    return (
+                      <div
+                        key={word.id}
+                        className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-shadow group"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{word.original}</h3>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isDue ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                              {isDue ? 'Hazır' : 'Planlandı'}
+                            </span>
+                            <button
+                              onClick={() => setDeleteTarget(word)}
+                              className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-3">{word.translation}</p>
+                        {word.aiSentence && (
+                          <p className="text-xs text-gray-400 italic bg-gray-50 rounded-lg px-3 py-2">
+                            "{word.aiSentence}"
+                          </p>
+                        )}
+                        <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+                          <span>Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-500 mb-3">{word.translation}</p>
-                      {word.aiSentence && (
-                        <p className="text-xs text-gray-400 italic bg-gray-50 rounded-lg px-3 py-2">
-                          "{word.aiSentence}"
-                        </p>
-                      )}
-                      <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                        <span>Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
+
+              {/* Load More Button */}
+              {(displayedCountByField.get(field) || ITEMS_PER_LOAD) < fieldWords.length && (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => handleLoadMore(field)}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2"
+                  >
+                    <BookOpen size={16} />
+                    Devamını Görüntüle ({(displayedCountByField.get(field) || ITEMS_PER_LOAD)} / {fieldWords.length})
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
