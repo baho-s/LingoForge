@@ -57,6 +57,9 @@ public sealed class ImportPredefinedWordsByFieldCommandHandler : IRequestHandler
             // Create user's copy of the word
             var newWord = Word.Create(userId, predefinedWord.Original, predefinedWord.Translation);
 
+            // Set field information
+            newWord.SetField(field);
+
             // Attach AI sentence if available
             if (!string.IsNullOrWhiteSpace(predefinedWord.AiSentence))
                 newWord.AttachAiSentence(predefinedWord.AiSentence);

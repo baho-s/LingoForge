@@ -95,6 +95,9 @@ Practice/
  Queries/GetPracticeQuestions/
   GetPracticeQuestionsQuery.cs
   GetPracticeQuestionsQueryHandler.cs
+PredefinedWords/Commands/ClearImportedWords/
+ ClearImportedWordsCommand.cs
+ ClearImportedWordsCommandHandler.cs
 PredefinedWords/Commands/ImportPredefinedWordsByField/
  ImportPredefinedWordsByFieldCommand.cs
  ImportPredefinedWordsByFieldCommandHandler.cs
@@ -123,6 +126,9 @@ Words/Commands/CreateWord/
  CreateWordCommand.cs
  CreateWordCommandHandler.cs
  CreateWordCommandValidator.cs
+Words/Commands/DeleteWord/
+ DeleteWordCommand.cs
+ DeleteWordCommandHandler.cs
 Words/Commands/RecordReview/
  RecordReviewCommand.cs
  RecordReviewCommandHandler.cs

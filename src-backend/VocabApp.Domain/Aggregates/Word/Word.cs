@@ -11,6 +11,7 @@ public sealed class Word : AggregateRoot<WordId>
     public string Original { get; private set; } = string.Empty;
     public string Translation { get; private set; } = string.Empty;
     public string? AiSentence { get; private set; }
+    public string? Field { get; private set; }
     public ReviewInfo Review { get; private set; } = default!;
     public DateTime CreatedAt { get; private set; }
 
@@ -55,6 +56,17 @@ public sealed class Word : AggregateRoot<WordId>
         }
 
         AiSentence = sentence.Trim();
+    }
+
+    public void SetField(string field)
+    {
+        if (string.IsNullOrWhiteSpace(field))
+        {
+            Field = null;
+            return;
+        }
+
+        Field = field.Trim();
     }
 
     public void RecordReview(ReviewOutcome outcome)

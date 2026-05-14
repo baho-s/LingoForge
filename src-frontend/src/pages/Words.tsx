@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, Plus, Sparkles, X, Loader2, ArrowUpDown, AlertTriangle, BookOpen } from 'lucide-react';
+import { Search, Plus, Sparkles, X, Loader2, ArrowUpDown, AlertTriangle, BookOpen, Trash2 } from 'lucide-react';
 import { wordsApi } from '../api/endpoints';
 import { useToast } from '../components/Toast';
 import FieldImportModal from '../components/FieldImportModal';
@@ -34,6 +34,10 @@ export default function Words() {
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<WordDto | null>(null);
+
+  // Bulk delete by field
+  const [deleteFieldTarget, setDeleteFieldTarget] = useState<string | null>(null);
+  const [deletingField, setDeletingField] = useState(false);
 
   // Bulk generate
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -94,6 +98,19 @@ export default function Words() {
 
   const dueCount = words.filter((w) => new Date(w.nextReviewAt) <= now).length;
 
+  const groupedByField = useMemo(() => {
+    const groups = new Map<string, WordDto[]>();
+    groups.set('_no_field', []);
+    
+    filtered.forEach((word) => {
+      const field = word.field || '_no_field';
+      if (!groups.has(field)) groups.set(field, []);
+      groups.get(field)!.push(word);
+    });
+
+    return groups;
+  }, [filtered]);
+
   const handleAdd = async () => {
     if (!addOriginal.trim() || !addTranslation.trim()) return;
     setAdding(true);
@@ -144,6 +161,20 @@ export default function Words() {
       addToast(t('common.error'), 'error');
     }
     setDeleteTarget(null);
+  };
+
+  const handleBulkDeleteByField = async (field: string) => {
+    setDeletingField(true);
+    try {
+      const { data } = await wordsApi.bulkDeleteByField(field);
+      setWords((prev) => prev.filter((w) => w.field !== field));
+      addToast(`${data.deletedCount} kelime başarıyla silindi.`, 'success');
+    } catch {
+      addToast(t('common.error'), 'error');
+    } finally {
+      setDeletingField(false);
+      setDeleteFieldTarget(null);
+    }
   };
 
   const toggleSort = (key: SortKey) => {
@@ -249,40 +280,70 @@ export default function Words() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((word) => {
-            const isDue = new Date(word.nextReviewAt) <= now;
-            return (
-              <div
-                key={word.id}
-                className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-shadow group"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{word.original}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isDue ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
-                      {isDue ? 'Hazır' : 'Planlandı'}
-                    </span>
-                    <button
-                      onClick={() => setDeleteTarget(word)}
-                      className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"
-                    >
-                      <X size={16} />
-                    </button>
+        <div className="space-y-8">
+          {Array.from(groupedByField.entries()).map(([field, fieldWords]) => (
+            <div key={field}>
+              {/* Field Header with Bulk Delete */}
+              {field !== '_no_field' && (
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{field}</h3>
+                    <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
                   </div>
+                  <button
+                    onClick={() => setDeleteFieldTarget(field)}
+                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Trash2 size={16} />
+                    Tümünü Sil
+                  </button>
                 </div>
-                <p className="text-sm text-gray-500 mb-3">{word.translation}</p>
-                {word.aiSentence && (
-                  <p className="text-xs text-gray-400 italic bg-gray-50 rounded-lg px-3 py-2">
-                    "{word.aiSentence}"
-                  </p>
-                )}
-                <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                  <span>Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}</span>
+              )}
+              {field === '_no_field' && fieldWords.length > 0 && (
+                <div className="mb-4 pb-2 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Alan Tanımlanmamış</h3>
+                  <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
                 </div>
+              )}
+
+              {/* Words Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {fieldWords.map((word) => {
+                  const isDue = new Date(word.nextReviewAt) <= now;
+                  return (
+                    <div
+                      key={word.id}
+                      className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-shadow group"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">{word.original}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isDue ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                            {isDue ? 'Hazır' : 'Planlandı'}
+                          </span>
+                          <button
+                            onClick={() => setDeleteTarget(word)}
+                            className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-500 mb-3">{word.translation}</p>
+                      {word.aiSentence && (
+                        <p className="text-xs text-gray-400 italic bg-gray-50 rounded-lg px-3 py-2">
+                          "{word.aiSentence}"
+                        </p>
+                      )}
+                      <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+                        <span>Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}</span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
@@ -366,6 +427,43 @@ export default function Words() {
                 className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors"
               >
                 Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete by Field Modal */}
+      {deleteFieldTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="fixed inset-0 bg-black/30" onClick={() => setDeleteFieldTarget(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={20} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{deleteFieldTarget} Alanındaki Kelimeleri Sil</h3>
+                <p className="text-sm text-gray-500">
+                  "<span className="font-medium text-gray-700">{deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{filtered.filter(w => w.field === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteFieldTarget(null)}
+                disabled={deletingField}
+                className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                {t('words.cancel')}
+              </button>
+              <button
+                onClick={() => handleBulkDeleteByField(deleteFieldTarget)}
+                disabled={deletingField}
+                className="px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {deletingField ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {deletingField ? 'Siliniyor...' : 'Tümünü Sil'}
               </button>
             </div>
           </div>

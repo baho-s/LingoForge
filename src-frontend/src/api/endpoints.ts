@@ -33,6 +33,10 @@ export const wordsApi = {
   review: (id: string, payload: ReviewPayload) =>
     client.post<WordDto>(`/api/words/${id}/review`, payload),
   delete: (id: string) => client.delete(`/api/words/${id}`),
+  bulkDeleteByField: (field: string) =>
+    client.delete<{ success: boolean; fieldName: string; deletedCount: number; message: string }>(
+      `/api/words/by-field/${encodeURIComponent(field)}`
+    ),
   getWordOfDay: () => client.get<WordDto>('/api/words/word-of-day'),
 };
 

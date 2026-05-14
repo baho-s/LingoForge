@@ -9,6 +9,7 @@ export interface WordDto {
   original: string;
   translation: string;
   aiSentence: string | null;
+  field: string | null;
   intervalDays: number;
   easeFactor: number;
   repetitions: number;

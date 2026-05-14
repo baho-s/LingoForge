@@ -27,6 +27,15 @@ public sealed class WordRepository : IWordRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Word>> GetByOwnerAndFieldAsync(UserId ownerId, string field, CancellationToken ct = default)
+    {
+        var normalizedField = field.Trim();
+        return await _dbContext.Words
+            .Where(word => word.OwnerId == ownerId && word.Field == normalizedField)
+            .OrderByDescending(word => word.CreatedAt)
+            .ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Word>> GetWordsWithoutSentenceAsync(UserId ownerId, CancellationToken ct = default)
     {
         return await _dbContext.Words
@@ -50,5 +59,10 @@ public sealed class WordRepository : IWordRepository
     public void Update(Word word)
     {
         _dbContext.Words.Update(word);
+    }
+
+    public void Delete(Word word)
+    {
+        _dbContext.Words.Remove(word);
     }
 }

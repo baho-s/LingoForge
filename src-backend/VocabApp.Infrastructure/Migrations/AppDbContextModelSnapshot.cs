@@ -71,10 +71,10 @@ namespace VocabApp.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("5b28f01b-18ec-4431-b1c6-097d6930fc89"),
+                            Id = new Guid("f9eec26d-4ad1-4788-82e3-e9e060ec81d8"),
                             AiSentence = "An algorithm is a step-by-step procedure for solving a problem.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 346, DateTimeKind.Utc).AddTicks(9823),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5881),
                             Field = "Software",
                             IsActive = true,
                             Original = "algorithm",
@@ -82,10 +82,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("1b7a5571-9388-436e-ae9b-792959c973da"),
+                            Id = new Guid("efa5d740-577a-4b2b-9e9b-b1926cdc9d8d"),
                             AiSentence = "A bug is an error or flaw in a software program.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 346, DateTimeKind.Utc).AddTicks(9920),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5899),
                             Field = "Software",
                             IsActive = true,
                             Original = "bug",
@@ -93,10 +93,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("16b6999a-d974-48f5-9cdd-2a8221be9b39"),
+                            Id = new Guid("454b4275-6c87-4c55-ad76-0837d44993a5"),
                             AiSentence = "To debug means to find and fix errors in code.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 346, DateTimeKind.Utc).AddTicks(9928),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5904),
                             Field = "Software",
                             IsActive = true,
                             Original = "debug",
@@ -104,10 +104,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("72056339-4756-498f-a266-e05d77613a77"),
+                            Id = new Guid("8c2a3f5e-da7b-4052-ac2e-b73bc1bd7b10"),
                             AiSentence = "A framework provides a foundation for building applications.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 346, DateTimeKind.Utc).AddTicks(9936),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5909),
                             Field = "Software",
                             IsActive = true,
                             Original = "framework",
@@ -115,10 +115,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("a6265f55-78b6-495a-98cd-69588c5c58b3"),
+                            Id = new Guid("259b50bf-7c68-42f9-a671-64ab6b1b2281"),
                             AiSentence = "A repository is a central storage location for code.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 346, DateTimeKind.Utc).AddTicks(9942),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5913),
                             Field = "Software",
                             IsActive = true,
                             Original = "repository",
@@ -126,10 +126,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("084e7fe8-13c8-4773-9b85-eb054b6b549a"),
+                            Id = new Guid("5d090354-b672-4635-a76d-93a01e782b29"),
                             AiSentence = "Diagnosis is the identification of a disease or condition.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 346, DateTimeKind.Utc).AddTicks(9976),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5937),
                             Field = "Medicine",
                             IsActive = true,
                             Original = "diagnosis",
@@ -137,10 +137,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("20fd5b19-adb8-49df-9786-b3118ae0c031"),
+                            Id = new Guid("a985bcd6-f85f-42c2-b4fc-fe5a80a32490"),
                             AiSentence = "Prognosis is the likely outcome of a disease.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 346, DateTimeKind.Utc).AddTicks(9983),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5960),
                             Field = "Medicine",
                             IsActive = true,
                             Original = "prognosis",
@@ -148,10 +148,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("6287df7b-8098-4954-9289-ad6523e46c35"),
+                            Id = new Guid("3eb376f5-3412-4534-b342-03e3e13cab3a"),
                             AiSentence = "A symptom is a sign of illness or disease.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 347, DateTimeKind.Utc).AddTicks(16),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5965),
                             Field = "Medicine",
                             IsActive = true,
                             Original = "symptom",
@@ -159,10 +159,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("6f1bcfdf-1fcd-4369-8d91-1c90c9c5b8cf"),
+                            Id = new Guid("4a5f9438-b2a4-46be-8be7-5cb8c775309d"),
                             AiSentence = "Treatment is the medical care given for an illness.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 347, DateTimeKind.Utc).AddTicks(22),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5969),
                             Field = "Medicine",
                             IsActive = true,
                             Original = "treatment",
@@ -170,10 +170,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("72d2cf05-3dce-4b16-b125-ada4365580ac"),
+                            Id = new Guid("d8bc78d6-767c-44b1-9c49-8c8ea0d70983"),
                             AiSentence = "A defendant is a person accused of a crime.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 347, DateTimeKind.Utc).AddTicks(30),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5976),
                             Field = "Law",
                             IsActive = true,
                             Original = "defendant",
@@ -181,10 +181,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("759719e5-a651-4ad9-a67d-2ae778331e83"),
+                            Id = new Guid("9518b5d7-3aea-4c4b-b001-969cef8b84ce"),
                             AiSentence = "A verdict is the decision made by a court.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 347, DateTimeKind.Utc).AddTicks(35),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5981),
                             Field = "Law",
                             IsActive = true,
                             Original = "verdict",
@@ -192,10 +192,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("2ae720d9-5830-42b8-927d-997cdc5bc95a"),
+                            Id = new Guid("c207887d-8c34-4b75-9065-c0f759e0bc50"),
                             AiSentence = "A lawsuit is a legal action brought in court.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 347, DateTimeKind.Utc).AddTicks(40),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5986),
                             Field = "Law",
                             IsActive = true,
                             Original = "lawsuit",
@@ -203,10 +203,10 @@ namespace VocabApp.Infrastructure.Migrations
                         },
                         new
                         {
-                            Id = new Guid("8d8343b9-de16-4113-9cd4-30614122a953"),
+                            Id = new Guid("2eb089a7-4d99-4778-bde9-35ea32e46939"),
                             AiSentence = "An attorney is a lawyer who represents clients.",
                             Category = "General",
-                            CreatedAt = new DateTime(2026, 5, 13, 20, 19, 50, 347, DateTimeKind.Utc).AddTicks(45),
+                            CreatedAt = new DateTime(2026, 5, 14, 20, 20, 46, 634, DateTimeKind.Utc).AddTicks(5991),
                             Field = "Law",
                             IsActive = true,
                             Original = "attorney",
@@ -261,6 +261,10 @@ namespace VocabApp.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Field")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Original")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -277,6 +281,8 @@ namespace VocabApp.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId", "CreatedAt");
+
+                    b.HasIndex("OwnerId", "Field");
 
                     b.ToTable("Words");
                 });

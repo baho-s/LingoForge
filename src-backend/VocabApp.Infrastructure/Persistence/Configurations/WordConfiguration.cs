@@ -38,6 +38,9 @@ public sealed class WordConfiguration : IEntityTypeConfiguration<Word>
         builder.Property(word => word.AiSentence)
             .HasMaxLength(1000);
 
+        builder.Property(word => word.Field)
+            .HasMaxLength(100);
+
         builder.Property(word => word.CreatedAt)
             .IsRequired();
 
@@ -51,5 +54,6 @@ public sealed class WordConfiguration : IEntityTypeConfiguration<Word>
         });
 
         builder.HasIndex(word => new { word.OwnerId, word.CreatedAt });
+        builder.HasIndex(word => new { word.OwnerId, word.Field });
     }
 }

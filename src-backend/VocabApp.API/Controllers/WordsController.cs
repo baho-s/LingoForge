@@ -2,7 +2,9 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using VocabApp.Application.Words.Commands.BulkGenerate;
+using VocabApp.Application.Words.Commands.BulkDeleteByField;
 using VocabApp.Application.Words.Commands.CreateWord;
+using VocabApp.Application.Words.Commands.DeleteWord;
 using VocabApp.Application.Words.Commands.RecordReview;
 using VocabApp.Application.Words.Dtos;
 using VocabApp.Application.Words.Queries.GetWordList;
@@ -53,6 +55,20 @@ public sealed class WordsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Bulk delete all words from a specific field
+    /// </summary>
+    [HttpDelete("by-field/{field}")]
+    public async Task<ActionResult<BulkDeleteWordsByFieldResponse>> BulkDeleteByField(
+        string field,
+        CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(
+            new BulkDeleteWordsByFieldCommand(field),
+            cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("{id:guid}/review")]
     public async Task<ActionResult<WordDto>> RecordReview(
         Guid id,
@@ -69,6 +85,13 @@ public sealed class WordsController : ControllerBase
     {
         var result = await _sender.Send(new GetWordOfDayQuery(), cancellationToken);
         return Ok(result);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        await _sender.Send(new DeleteWordCommand(id), cancellationToken);
+        return NoContent();
     }
 
     public sealed record RecordReviewRequest(VocabApp.Domain.Enums.ReviewOutcome Outcome);
