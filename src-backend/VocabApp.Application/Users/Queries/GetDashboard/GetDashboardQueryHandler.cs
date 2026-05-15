@@ -8,16 +8,16 @@ namespace VocabApp.Application.Users.Queries.GetDashboard;
 public sealed class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery, DashboardDto>
 {
     private readonly IUserRepository _userRepository;
-    private readonly IWordRepository _wordRepository;
+    private readonly IUserVocabularyProgressRepository _progressRepository;
     private readonly ICurrentUserService _currentUser;
 
     public GetDashboardQueryHandler(
         IUserRepository userRepository,
-        IWordRepository wordRepository,
+        IUserVocabularyProgressRepository progressRepository,
         ICurrentUserService currentUser)
     {
         _userRepository = userRepository;
-        _wordRepository = wordRepository;
+        _progressRepository = progressRepository;
         _currentUser = currentUser;
     }
 
@@ -30,21 +30,49 @@ public sealed class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery
             throw new NotFoundException("User not found.");
         }
 
-        var words = await _wordRepository.GetByOwnerAsync(userId, cancellationToken);
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var start = today.AddDays(-6);
+        // Haftalık hedef hesapla: (135, 180, 240, 300) döngüsü
+        var weekNumber = (int)((DateTime.UtcNow - new DateTime(2026, 1, 1)).TotalDays / 7) + 1;
+        var cycleWeek = ((weekNumber - 1) % 4) + 1;
+        var weeklyGoal = cycleWeek switch
+        {
+            1 => 135,
+            2 => 180,
+            3 => 240,
+            4 => 300,
+            _ => 135
+        };
 
-        var counts = words
-            .Select(word => DateOnly.FromDateTime(word.CreatedAt))
-            .Where(date => date >= start && date <= today)
-            .GroupBy(date => date)
-            .ToDictionary(group => group.Key, group => group.Count());
+        // Bu hafta review'lenen kelimeleri al
+        var userProgresses = await _progressRepository.GetByUserAsync(userId, cancellationToken);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var weekStart = today.AddDays(-6);
+
+        var dailyReviewedCounts = new Dictionary<DateOnly, int>();
+        for (var i = 0; i < 7; i++)
+        {
+            dailyReviewedCounts[weekStart.AddDays(i)] = 0;
+        }
+
+        // Her progress'in TotalAttempts'i var, şu hafta içinde attempt kayıtlı olanları say
+        foreach (var progress in userProgresses)
+        {
+            var attemptDate = DateOnly.FromDateTime(progress.UpdatedAt);
+            if (attemptDate >= weekStart && attemptDate <= today)
+            {
+                if (dailyReviewedCounts.ContainsKey(attemptDate))
+                {
+                    dailyReviewedCounts[attemptDate]++;
+                }
+            }
+        }
+
+        var reviewedThisWeek = dailyReviewedCounts.Values.Sum();
 
         var weekly = new List<WeeklyActivityPoint>(7);
-        for (var i = 0; i < 7; i += 1)
+        for (var i = 0; i < 7; i++)
         {
-            var date = start.AddDays(i);
-            counts.TryGetValue(date, out var count);
+            var date = weekStart.AddDays(i);
+            dailyReviewedCounts.TryGetValue(date, out var count);
             weekly.Add(new WeeklyActivityPoint(date, count));
         }
 
@@ -54,8 +82,8 @@ public sealed class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery
 
         return new DashboardDto(
             user.Streak,
-            user.DailyGoal,
-            user.ReviewCount,
+            weeklyGoal,
+            reviewedThisWeek,
             user.LastActivity,
             badges,
             weekly);

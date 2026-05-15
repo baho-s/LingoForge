@@ -39,20 +39,31 @@ export interface BulkGenerateResult {
   skipped: number;
 }
 
+export enum BadgeType {
+  FirstWord = 0,
+  SevenDayStreak = 1,
+  ThirtyDayStreak = 2,
+  HundredReviews = 3,
+  WeeklyMilestone135 = 4,
+  WeeklyMilestone180 = 5,
+  WeeklyMilestone240 = 6,
+  WeeklyMilestone300 = 7,
+}
+
 export interface BadgeDto {
-  type: string;
+  type: BadgeType;
   awardedAt: string;
 }
 
 export interface WeeklyActivityPoint {
   date: string;
-  wordsAdded: number;
+  reviewedCount: number;
 }
 
 export interface DashboardDto {
   streak: number;
-  dailyGoal: number;
-  reviewCount: number;
+  weeklyGoal: number;
+  reviewedThisWeek: number;
   lastActivity: string;
   badges: BadgeDto[];
   weeklyActivity: WeeklyActivityPoint[];

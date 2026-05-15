@@ -53,10 +53,10 @@ export default function Dashboard() {
   }
 
   const streak = dashboard?.streak ?? 0;
-  const dailyGoal = dashboard?.dailyGoal ?? 0;
-  const wordsReviewedToday = dashboard?.reviewCount ?? 0;
+  const weeklyGoal = dashboard?.weeklyGoal ?? 0;
+  const reviewedThisWeek = dashboard?.reviewedThisWeek ?? 0;
   const weeklyActivity = dashboard?.weeklyActivity ?? [];
-  const goalProgress = dailyGoal > 0 ? Math.min((wordsReviewedToday / dailyGoal) * 100, 100) : 0;
+  const goalProgress = weeklyGoal > 0 ? Math.min((reviewedThisWeek / weeklyGoal) * 100, 100) : 0;
 
   const dayLabels = ['Pz', 'Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Cm'];
 
@@ -130,8 +130,8 @@ export default function Dashboard() {
                   <Target size={20} className="text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{wordsReviewedToday}<span className="text-sm font-normal text-gray-400">/{dailyGoal}</span></p>
-                  <p className="text-xs text-gray-500">{t('dashboard.dailyGoal')}</p>
+                  <p className="text-2xl font-bold text-gray-900">{reviewedThisWeek}<span className="text-sm font-normal text-gray-400">/{weeklyGoal}</span></p>
+                  <p className="text-xs text-gray-500">Haftalık Hedef</p>
                 </div>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
@@ -198,14 +198,14 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={weeklyActivity.map((d) => ({
               day: dayLabels[new Date(d.date).getDay()],
-              words: d.wordsAdded,
+              reviewed: d.reviewedCount,
             }))}>
               <XAxis dataKey="day" tick={{ fontSize: 12 }} stroke="#9ca3af" />
               <YAxis allowDecimals={false} tick={{ fontSize: 12 }} stroke="#9ca3af" />
               <Tooltip
                 contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 13 }}
               />
-              <Bar dataKey="words" fill="#2563eb" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="reviewed" fill="#2563eb" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
