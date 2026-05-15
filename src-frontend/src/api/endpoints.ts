@@ -3,7 +3,6 @@ import type {
   AuthResponse,
   DashboardDto,
   WordDto,
-  QuizWordDto,
   StatsDto,
   BulkGenerateResult,
   AddWordPayload,
@@ -14,7 +13,6 @@ import type {
   GenerateSentencePayload,
   GeneratedSentenceResponse,
 } from '../types';
-import { QuizMode } from '../types';
 import type { PracticeMode } from '../types';
 
 export const authApi = {
@@ -44,11 +42,6 @@ export const wordsApi = {
 export const dashboardApi = {
   get: () => client.get<DashboardDto>('/api/dashboard'),
   getWordOfDay: () => client.get<WordDto>('/api/words/word-of-day'),
-};
-
-export const quizApi = {
-  get: (mode: QuizMode = QuizMode.FillBlank, count = 10) =>
-    client.get<QuizWordDto[]>('/api/quiz', { params: { mode, count } }),
 };
 
 export const practiceApi = {

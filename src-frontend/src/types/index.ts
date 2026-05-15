@@ -58,23 +58,6 @@ export interface DashboardDto {
   weeklyActivity: WeeklyActivityPoint[];
 }
 
-export interface QuizOption {
-  value: string;
-  isCorrect: boolean;
-}
-
-export interface QuizWordDto {
-  wordId: string;
-  prompt: string;
-  answer: string;
-  options: QuizOption[];
-}
-
-export enum QuizMode {
-  FillBlank = 0,
-  MultipleChoice = 1,
-  Writing = 2,
-}
 
 export type PracticeMode = 'multiple_choice' | 'spelling' | 'ai_sentence';
 

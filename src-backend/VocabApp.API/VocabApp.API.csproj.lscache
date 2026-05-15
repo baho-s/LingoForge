@@ -60,7 +60,6 @@ Controllers/
  HealthController.cs
  PracticeController.cs
  PredefinedWordsController.cs
- QuizController.cs
  StatsController.cs
  WordsController.cs
 DependencyInjection.cs

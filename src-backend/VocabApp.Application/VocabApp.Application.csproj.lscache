@@ -137,12 +137,6 @@ Words/Commands/RecordReview/
 Words/
  Dtos/WordDto.cs
  Events/WordReviewedCacheInvalidationHandler.cs
- Queries/GetQuizWords/
-  GetQuizWordsQuery.cs
-  GetQuizWordsQueryHandler.cs
-  GetQuizWordsQueryValidator.cs
-  QuizMode.cs
-  QuizWordDto.cs
  Queries/GetReviewSessionWords/
   GetReviewSessionWordsQuery.cs
   GetReviewSessionWordsQueryHandler.cs
