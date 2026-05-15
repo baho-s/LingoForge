@@ -61,6 +61,50 @@ public sealed class WordRepository : IWordRepository
             .ToListAsync(ct);
     }
 
+    /// <summary>
+    /// Practice sekmesinden sorular seçmek için optimize edilmiş method.
+    /// NextReviewAt'a göre kullanıcının hangi kelimeleri yapması gerektiğini belirler.
+    /// 
+    /// DATABASE OPTIMIZATION:
+    /// - SORUN 1 ÇÖZÜMÜ: Bütün kelimeleri çekmek yerine database'de sorgulanır
+    /// - SORUN 2 ÇÖZÜMÜ: NextReviewAt'a göre sıralama yapılır
+    /// - SORUN 3 ÇÖZÜMÜ: Overdue olanlar tanımlanır (NextReviewAt <= now)
+    /// - SORUN 4 ÇÖZÜMÜ: EaseFactor'e göre zor olanlar seçilir
+    /// </summary>
+    public async Task<IReadOnlyList<Word>> GetWordsForPracticeAsync(
+        UserId ownerId, 
+        int limit, 
+        CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        
+        // Database'de optimize edilmiş query
+        // Priority ranking:
+        // 1. NextReviewAt <= now (Overdue - ÇOK ÖNEMLİ)
+        // 2. LastReviewedAt == null (Never reviewed)
+        // 3. NextReviewAt <= now + 1 day (Due soon)
+        // 4. EaseFactor ASC (Hard words)
+        // 5. NEWID() (Random)
+        
+        return await _dbContext.Words
+            .Where(w => w.OwnerId == ownerId)
+            // SORUN 2 & 3 ÇÖZÜMÜ: NextReviewAt kontrol
+            // Overdue olanları (NextReviewAt geçmiş) önce getir
+            .OrderBy(w => w.Review.NextReviewAt <= now ? 0 : 1)
+            // SORUN 2 ÇÖZÜMÜ: Hiç review yapılmamış kelimeleri ikinci sıraya
+            .ThenBy(w => w.Review.LastReviewedAt == null ? 0 : 1)
+            // SORUN 3 ÇÖZÜMÜ: Yakın zamanda yapılacak (1 gün içinde) kelimeleri
+            .ThenBy(w => w.Review.NextReviewAt <= now.AddDays(1) ? 0 : 1)
+            // SORUN 4 ÇÖZÜMÜ: EaseFactor düşük (zor) olanları daha öne
+            .ThenBy(w => w.Review.EaseFactor)
+            // SORUN 1 ÇÖZÜMÜ: Random sırala
+            .ThenBy(w => Guid.NewGuid())
+            // SORUN 1 ÇÖZÜMÜ: limit * 2 kadarını çek
+            // AI Sentence filter'ı memory'de yapılıyor, 2x buffer gerekli
+            .Take(limit * 2)
+            .ToListAsync(ct);
+    }
+
     public void Add(Word word)
     {
         _dbContext.Words.Add(word);

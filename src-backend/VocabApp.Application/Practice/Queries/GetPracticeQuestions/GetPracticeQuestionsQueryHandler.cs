@@ -23,7 +23,14 @@ public sealed class GetPracticeQuestionsQueryHandler : IRequestHandler<GetPracti
         CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetUserId();
-        var words = await _wordRepository.GetByOwnerAsync(userId, cancellationToken);
+        var limit = request.Limit > 0 ? request.Limit : 10;
+        
+        // OPTIMIZATION: GetWordsForPracticeAsync ile database'de sorting yapılır
+        // limit * 2 çekilir çünkü AI Sentence filtresi memory'de yapılıyor
+        var words = await _wordRepository.GetWordsForPracticeAsync(
+            userId, 
+            limit: limit * 2,
+            cancellationToken);
 
         var modes = ParseModes(request.Mode);
         if (modes.Count == 0)
@@ -31,7 +38,6 @@ public sealed class GetPracticeQuestionsQueryHandler : IRequestHandler<GetPracti
             modes.Add("multiple_choice");
         }
 
-        var limit = request.Limit > 0 ? request.Limit : 10;
         var questions = BuildQuestions(words, modes, limit);
 
         return new PracticeQuestionsResponse(questions);
