@@ -6,6 +6,11 @@ using VocabApp.Domain.Repositories;
 
 namespace VocabApp.API.Controllers;
 
+#if DEBUG
+/// <summary>
+/// Development-only controller for seeding test data.
+/// Only available in DEBUG builds. Completely excluded from Release builds.
+/// </summary>
 [ApiController]
 [Route("api/dev")]
 public sealed class DevController : ControllerBase
@@ -80,3 +85,4 @@ public sealed class DevController : ControllerBase
 
     public sealed record SeedResult(Guid UserId, int WordsAdded);
 }
+#endif

@@ -41,6 +41,13 @@ app.UseCors("AllowVercel");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// DevController'ı production'dan exclude et
+#if !DEBUG
+app.MapGet("/api/dev/{**route}", () => Results.NotFound())
+    .WithName("DevNotFoundProduction");
+#endif
+
 app.MapControllers();
 app.MapHealthChecks("/health");
 
