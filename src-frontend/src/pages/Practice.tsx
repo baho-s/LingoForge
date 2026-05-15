@@ -311,22 +311,22 @@ export default function Practice() {
             <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
               <Brain size={32} className="text-green-600" />
             </div>
-            <p className="text-3xl font-bold text-gray-900 mb-2">Session Complete!</p>
+            <p className="text-3xl font-bold text-gray-900 mb-2">{t('practice.sessionCompleteTitle')}</p>
             <p className="text-gray-500 text-sm mb-6">
-              You reviewed {reviewedCount} of {reviewWords.length} words.
+              {t('practice.youReviewed')} {reviewedCount} {t('practice.of')} {reviewWords.length} {t('practice.words')}.
             </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => { setMode('select'); setReviewComplete(false); }}
                 className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
               >
-                Back to Practice
+                {t('practice.backToPractice')}
               </button>
               <button
                 onClick={startReview}
                 className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
               >
-                Review Again
+                {t('practice.reviewAgain')}
               </button>
             </div>
           </div>
@@ -362,7 +362,7 @@ export default function Practice() {
             {/* Front */}
             <div className="bg-white rounded-2xl shadow-md p-12 border border-gray-100 text-center" style={{ backfaceVisibility: 'hidden' }}>
               <p className="text-3xl font-bold text-gray-900">{word.original}</p>
-              <p className="text-sm text-gray-400 mt-3">Click to reveal</p>
+              <p className="text-sm text-gray-400 mt-3">{t('practice.clickToReveal')}</p>
             </div>
             {/* Back */}
             <div
@@ -381,10 +381,10 @@ export default function Practice() {
         {flipped && (
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: 'Again', value: ReviewOutcome.Again, color: 'bg-red-50 text-red-700 hover:bg-red-100', desc: 'Forgot' },
-              { label: 'Hard', value: ReviewOutcome.Hard, color: 'bg-orange-50 text-orange-700 hover:bg-orange-100', desc: 'Difficult' },
-              { label: 'Good', value: ReviewOutcome.Good, color: 'bg-green-50 text-green-700 hover:bg-green-100', desc: 'Correct' },
-              { label: 'Easy', value: ReviewOutcome.Easy, color: 'bg-blue-50 text-blue-700 hover:bg-blue-100', desc: 'Perfect' },
+              { label: t('practice.again'), value: ReviewOutcome.Again, color: 'bg-red-50 text-red-700 hover:bg-red-100', desc: t('practice.forgot') },
+              { label: t('practice.hard'), value: ReviewOutcome.Hard, color: 'bg-orange-50 text-orange-700 hover:bg-orange-100', desc: t('practice.difficult') },
+              { label: t('practice.good'), value: ReviewOutcome.Good, color: 'bg-green-50 text-green-700 hover:bg-green-100', desc: t('practice.isCorrect') },
+              { label: t('practice.easy'), value: ReviewOutcome.Easy, color: 'bg-blue-50 text-blue-700 hover:bg-blue-100', desc: t('practice.perfect') },
             ].map((btn) => (
               <button
                 key={btn.value}
@@ -411,7 +411,7 @@ export default function Practice() {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
         <button onClick={() => setMode('select')} className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700">
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={16} /> {t('practice.back')}
         </button>
 
         {isComplete ? (
@@ -419,38 +419,38 @@ export default function Practice() {
             <p className="text-4xl font-bold text-gray-900 mb-2">{practiceCorrectCount}/{practiceQuestions.length}</p>
             <p className="text-gray-500 text-sm mb-2">
               {practiceCorrectCount === practiceQuestions.length
-                ? 'Perfect score!'
+                ? t('practice.perfectScore')
                 : practiceCorrectCount >= practiceQuestions.length / 2
-                  ? 'Good job!'
-                  : 'Keep practicing!'}
+                  ? t('practice.goodJob')
+                  : t('practice.keepPracticing')}
             </p>
             <p className="text-xs text-gray-400 mb-6">
               {practiceQuestions.length === 0
-                ? '0% accuracy'
-                : `${Math.round((practiceCorrectCount / practiceQuestions.length) * 100)}% accuracy`}
+                ? `0% ${t('practice.accuracy')}`
+                : `${Math.round((practiceCorrectCount / practiceQuestions.length) * 100)}% ${t('practice.accuracy')}`}
             </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setMode('select')}
                 className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
               >
-                Back to Practice
+                {t('practice.backToPractice')}
               </button>
               <button
                 onClick={() => startPractice(practiceMode)}
                 className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
               >
-                Try Again
+                {t('practice.tryAgainBtn')}
               </button>
             </div>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-400">Question {practiceIndex + 1} of {practiceQuestions.length}</p>
+              <p className="text-sm text-gray-400">{t('practice.question')} {practiceIndex + 1} {t('practice.of')} {practiceQuestions.length}</p>
               <div className="flex items-center gap-3">
                 <span className="text-xs uppercase tracking-wide text-gray-400">{getPracticeModeLabel(practiceMode)}</span>
-                <span className="text-sm font-medium text-blue-600">{practiceCorrectCount} correct</span>
+                <span className="text-sm font-medium text-blue-600">{practiceCorrectCount} {t('practice.isCorrect').toLowerCase()}</span>
               </div>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-2">
@@ -504,7 +504,7 @@ export default function Practice() {
                   value={practiceAnswer}
                   onChange={(e) => setPracticeAnswer(e.target.value)}
                   disabled={practiceSubmitted}
-                  placeholder="Type your answer"
+                  placeholder={t('practice.typeAnswer')}
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
                 <button
@@ -512,7 +512,7 @@ export default function Practice() {
                   disabled={practiceSubmitted || practiceAnswer.trim().length === 0}
                   className="px-5 py-3 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-200"
                 >
-                  Check Answer
+                  {t('practice.checkAnswer')}
                 </button>
               </div>
             )}
@@ -523,7 +523,7 @@ export default function Practice() {
                   value={practiceAnswer}
                   onChange={(e) => setPracticeAnswer(e.target.value)}
                   disabled={practiceSubmitted}
-                  placeholder="Write the Turkish meaning or main idea"
+                  placeholder={t('practice.writeMeaning')}
                   rows={4}
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
@@ -533,7 +533,7 @@ export default function Practice() {
                   className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-200"
                 >
                   {practiceBusy && <Loader2 size={16} className="animate-spin" />}
-                  Submit Answer
+                  {t('practice.submitAnswer')}
                 </button>
               </div>
             )}
@@ -543,13 +543,13 @@ export default function Practice() {
                 className={`rounded-xl px-4 py-3 text-sm ${practiceFeedback.is_correct ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}
               >
                 <p className="font-medium">
-                  {practiceFeedback.is_correct ? 'Correct' : 'Incorrect'}
+                  {practiceFeedback.is_correct ? t('practice.isCorrect') : t('practice.isIncorrect')}
                 </p>
                 {practiceFeedback.feedback && (
                   <p className="text-xs mt-1 opacity-80">{practiceFeedback.feedback}</p>
                 )}
                 {practiceFeedback.accuracy_score !== undefined && (
-                  <p className="text-xs mt-1 opacity-80">Accuracy: {practiceFeedback.accuracy_score}%</p>
+                  <p className="text-xs mt-1 opacity-80">{t('practice.accuracyScore')}: {practiceFeedback.accuracy_score}%</p>
                 )}
               </div>
             )}
@@ -560,7 +560,7 @@ export default function Practice() {
                   onClick={goToNextPracticeQuestion}
                   className="px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
                 >
-                  Next Question
+                  {t('practice.next')} Soru
                 </button>
               </div>
             )}

@@ -8,15 +8,18 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
 {
     private readonly IUserRepository _userRepository;
     private readonly IWordRepository _wordRepository;
+    private readonly IUserVocabularyProgressRepository _progressRepository;
     private readonly ICurrentUserService _currentUser;
 
     public GetStatsQueryHandler(
         IUserRepository userRepository,
         IWordRepository wordRepository,
+        IUserVocabularyProgressRepository progressRepository,
         ICurrentUserService currentUser)
     {
         _userRepository = userRepository;
         _wordRepository = wordRepository;
+        _progressRepository = progressRepository;
         _currentUser = currentUser;
     }
 
@@ -28,6 +31,7 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
         {
             throw new VocabApp.Application.Common.Exceptions.NotFoundException("User not found.");
         }
+
         var words = await _wordRepository.GetByOwnerAsync(userId, cancellationToken);
         var now = DateTime.UtcNow;
         var oneWeekAgo = now.AddDays(-7);
@@ -39,6 +43,40 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
             word.Review.LastReviewedAt >= oneWeekAgo);
         var averageEaseFactor = words.Any() ? words.Average(word => word.Review.EaseFactor) : 0f;
 
-        return new StatsDto(totalWords, wordsLearnedThisWeek, averageEaseFactor);
+        // Aktivite Haritası: Son 365 gün
+        var today = DateOnly.FromDateTime(now);
+        var yearAgo = today.AddDays(-365);
+        
+        var userProgresses = await _progressRepository.GetByUserAsync(userId, cancellationToken);
+        
+        var activityCounts = new Dictionary<DateOnly, int>();
+        for (var i = 0; i < 365; i++)
+        {
+            activityCounts[yearAgo.AddDays(i)] = 0;
+        }
+
+        // Her progress'in UpdatedAt'sine göre o günü say (unique word sayısı olarak)
+        foreach (var progress in userProgresses)
+        {
+            var progressDate = DateOnly.FromDateTime(progress.UpdatedAt);
+            if (progressDate >= yearAgo && progressDate <= today)
+            {
+                if (activityCounts.ContainsKey(progressDate))
+                {
+                    activityCounts[progressDate]++;
+                }
+            }
+        }
+
+        var activityHeatmap = activityCounts
+            .OrderBy(x => x.Key)
+            .Select(x => new ActivityHeatmapDay(x.Key, x.Value))
+            .ToList();
+
+        return new StatsDto(
+            totalWords,
+            wordsLearnedThisWeek,
+            averageEaseFactor,
+            activityHeatmap);
     }
 }

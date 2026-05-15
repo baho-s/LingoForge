@@ -138,4 +138,10 @@ export interface StatsDto {
   totalWords: number;
   wordsLearnedThisWeek: number;
   averageEaseFactor: number;
+  activityHeatmap: ActivityHeatmapDay[];
+}
+
+export interface ActivityHeatmapDay {
+  date: string;
+  activityCount: number;
 }
