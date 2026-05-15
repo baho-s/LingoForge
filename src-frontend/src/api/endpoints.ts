@@ -25,7 +25,8 @@ export const authApi = {
 };
 
 export const wordsApi = {
-  getAll: () => client.get<WordDto[]>('/api/words'),
+  getAll: (skip: number = 0, take: number = 100) =>
+    client.get<WordDto[]>('/api/words', { params: { skip, take } }),
   getReviewSessionWords: (limit: number = 8) =>
     client.get<WordDto[]>('/api/words/review/session', { params: { limit } }),
   add: (payload: AddWordPayload) => client.post<WordDto>('/api/words', payload),

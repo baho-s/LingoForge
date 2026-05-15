@@ -49,13 +49,41 @@ export default function Words() {
   const [displayedCountByField, setDisplayedCountByField] = useState<Map<string, number>>(
     new Map()
   );
+  const [loadedCountByField, setLoadedCountByField] = useState<Map<string, number>>(
+    new Map()
+  );
+  const [loadingMoreByField, setLoadingMoreByField] = useState<Map<string, boolean>>(
+    new Map()
+  );
 
   const { addToast } = useToast();
 
-  const fetchWords = async () => {
+  const fetchWords = async (skip: number = 0, take: number = 100) => {
     try {
-      const { data } = await wordsApi.getAll();
-      setWords(data);
+      const { data } = await wordsApi.getAll(skip, take);
+      if (skip === 0) {
+        // Initial load
+        setWords(data);
+        // Initialize loadedCountByField for each field
+        const loaded = new Map<string, number>();
+        data.forEach((word) => {
+          const field = word.field || '_no_field';
+          loaded.set(field, (loaded.get(field) || 0) + 1);
+        });
+        setLoadedCountByField(loaded);
+      } else {
+        // Append more data
+        setWords((prev) => [...prev, ...data]);
+        // Update loadedCountByField
+        setLoadedCountByField((prev) => {
+          const newMap = new Map(prev);
+          data.forEach((word) => {
+            const field = word.field || '_no_field';
+            newMap.set(field, (newMap.get(field) || 0) + 1);
+          });
+          return newMap;
+        });
+      }
     } catch {
       setError(t('common.error'));
     } finally {
@@ -64,7 +92,7 @@ export default function Words() {
   };
 
   useEffect(() => {
-    fetchWords();
+    fetchWords(0, 100);
   }, []);
 
   const now = new Date();
@@ -118,11 +146,40 @@ export default function Words() {
     return groups;
   }, [filtered]);
 
-  const handleLoadMore = (field: string) => {
+  const handleLoadMore = async (field: string) => {
+    const currentDisplayed = displayedCountByField.get(field) || ITEMS_PER_LOAD;
+    const nextDisplayed = currentDisplayed + ITEMS_PER_LOAD;
+    const currentLoaded = loadedCountByField.get(field) || 0;
+
+    // If we need more items than what's loaded, fetch from backend
+    if (nextDisplayed > currentLoaded) {
+      setLoadingMoreByField((prev) => {
+        const newMap = new Map(prev);
+        newMap.set(field, true);
+        return newMap;
+      });
+
+      try {
+        // Calculate skip for this field
+        // We need to fetch the next batch from backend
+        const currentPage = Math.floor(currentLoaded / 100);
+        const skip = currentPage * 100;
+        await fetchWords(skip + 100, 100);
+      } catch {
+        addToast(t('common.error'), 'error');
+      } finally {
+        setLoadingMoreByField((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(field, false);
+          return newMap;
+        });
+      }
+    }
+
+    // Update displayed count
     setDisplayedCountByField((prev) => {
       const newMap = new Map(prev);
-      const current = newMap.get(field) || ITEMS_PER_LOAD;
-      newMap.set(field, current + ITEMS_PER_LOAD);
+      newMap.set(field, nextDisplayed);
       return newMap;
     });
   };
@@ -140,7 +197,7 @@ export default function Words() {
       setAddOriginal('');
       setAddTranslation('');
       setAddAiSentence(true);
-      await fetchWords();
+      await fetchWords(0, 100);
       addToast(t('words.addWordSuccess'), 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -153,7 +210,7 @@ export default function Words() {
     setBulkLoading(true);
     try {
       const { data } = await wordsApi.bulkGenerate();
-      await fetchWords();
+      await fetchWords(0, 100);
       addToast(`${data.generated} cümle oluşturuldu. ${data.skipped} atlandı.`, 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -163,7 +220,7 @@ export default function Words() {
   };
 
   const handleFieldImportSuccess = async (fieldName: string, importedCount: number) => {
-    await fetchWords();
+    await fetchWords(0, 100);
     addToast(`${importedCount} kelime "${fieldName}" alanından eklendi!`, 'success');
   };
 
@@ -184,6 +241,17 @@ export default function Words() {
     try {
       const { data } = await wordsApi.bulkDeleteByField(field);
       setWords((prev) => prev.filter((w) => w.field !== field));
+      // Reset pagination for this field
+      setDisplayedCountByField((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(field);
+        return newMap;
+      });
+      setLoadedCountByField((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(field);
+        return newMap;
+      });
       addToast(`${data.deletedCount} kelime başarıyla silindi.`, 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -366,10 +434,20 @@ export default function Words() {
                 <div className="mt-6 flex justify-center">
                   <button
                     onClick={() => handleLoadMore(field)}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2"
+                    disabled={loadingMoreByField.get(field) || false}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <BookOpen size={16} />
-                    Devamını Görüntüle ({(displayedCountByField.get(field) || ITEMS_PER_LOAD)} / {fieldWords.length})
+                    {loadingMoreByField.get(field) ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Yükleniyor...
+                      </>
+                    ) : (
+                      <>
+                        <BookOpen size={16} />
+                        Devamını Görüntüle ({(displayedCountByField.get(field) || ITEMS_PER_LOAD)} / {fieldWords.length})
+                      </>
+                    )}
                   </button>
                 </div>
               )}

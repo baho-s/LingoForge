@@ -27,6 +27,16 @@ public sealed class WordRepository : IWordRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Word>> GetByOwnerPaginatedAsync(UserId ownerId, int skip, int take, CancellationToken ct = default)
+    {
+        return await _dbContext.Words
+            .Where(word => word.OwnerId == ownerId)
+            .OrderByDescending(word => word.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Word>> GetByOwnerAndFieldAsync(UserId ownerId, string field, CancellationToken ct = default)
     {
         var normalizedField = field.Trim();

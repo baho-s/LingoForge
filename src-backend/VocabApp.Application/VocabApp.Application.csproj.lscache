@@ -95,9 +95,6 @@ Practice/
  Queries/GetPracticeQuestions/
   GetPracticeQuestionsQuery.cs
   GetPracticeQuestionsQueryHandler.cs
-PredefinedWords/Commands/ClearImportedWords/
- ClearImportedWordsCommand.cs
- ClearImportedWordsCommandHandler.cs
 PredefinedWords/Commands/ImportPredefinedWordsByField/
  ImportPredefinedWordsByFieldCommand.cs
  ImportPredefinedWordsByFieldCommandHandler.cs
@@ -119,6 +116,10 @@ Users/Queries/GetStats/
  GetStatsQuery.cs
  GetStatsQueryHandler.cs
  StatsDto.cs
+Words/Commands/BulkDeleteByField/
+ BulkDeleteWordsByFieldCommand.cs
+ BulkDeleteWordsByFieldCommandHandler.cs
+ BulkDeleteWordsByFieldCommandValidator.cs
 Words/Commands/BulkGenerate/
  BulkGenerateSentencesCommand.cs
  BulkGenerateSentencesCommandHandler.cs

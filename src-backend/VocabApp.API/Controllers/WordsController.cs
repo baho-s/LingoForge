@@ -26,9 +26,12 @@ public sealed class WordsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<WordDto>>> GetList(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<WordDto>>> GetList(
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 100,
+        CancellationToken cancellationToken = default)
     {
-        var result = await _sender.Send(new GetWordListQuery(), cancellationToken);
+        var result = await _sender.Send(new GetWordListQuery(skip, take), cancellationToken);
         return Ok(result);
     }
 
