@@ -33,6 +33,7 @@ export default function Practice() {
   const [practiceLoading, setPracticeLoading] = useState(false);
   const [practiceBusy, setPracticeBusy] = useState(false);
   const [practiceCorrectCount, setPracticeCorrectCount] = useState(0);
+  const [questionStartTime, setQuestionStartTime] = useState<number | null>(null);
 
   const [error, setError] = useState('');
   const { addToast } = useToast();
@@ -96,6 +97,7 @@ export default function Practice() {
       setPracticeQuestions(data.questions);
       setPracticeIndex(0);
       setPracticeCorrectCount(0);
+      setQuestionStartTime(Date.now());
       resetPracticeUi();
       setMode('practice');
     } catch {
@@ -133,10 +135,13 @@ export default function Practice() {
     setPracticeFeedback({ is_correct: isCorrect, feedback: isCorrect ? t('practice.correct') : t('practice.incorrect') });
     if (isCorrect) setPracticeCorrectCount((count) => count + 1);
     try {
+      const timeTakenMs = Date.now() - (questionStartTime || Date.now());
+      console.log('🎯 Answer submitted:', { isCorrect, timeTakenMs, questionStartTime });
       const { data } = await practiceApi.submitAnswer({
         question_id: question.id,
         type: question.type,
         user_answer: option,
+        time_taken_ms: timeTakenMs,
       });
       setPracticeFeedback(data);
     } catch {
@@ -154,10 +159,13 @@ export default function Practice() {
     });
     if (isCorrect) setPracticeCorrectCount((count) => count + 1);
     try {
+      const timeTakenMs = Date.now() - (questionStartTime || Date.now());
+      console.log('✍️ Text answer submitted:', { isCorrect, timeTakenMs, questionStartTime });
       const { data } = await practiceApi.submitAnswer({
         question_id: question.id,
         type: question.type,
         user_answer: practiceAnswer,
+        time_taken_ms: timeTakenMs,
       });
       setPracticeFeedback(data);
     } catch {
@@ -170,10 +178,13 @@ export default function Practice() {
     setPracticeSubmitted(true);
     setPracticeBusy(true);
     try {
+      const timeTakenMs = Date.now() - (questionStartTime || Date.now());
+      console.log('🤖 AI answer submitted:', { timeTakenMs, questionStartTime });
       const { data } = await practiceApi.submitAnswer({
         question_id: question.id,
         type: question.type,
         user_answer: practiceAnswer,
+        time_taken_ms: timeTakenMs,
       });
       setPracticeFeedback(data);
       if (data.is_correct) setPracticeCorrectCount((count) => count + 1);
@@ -193,8 +204,16 @@ export default function Practice() {
     setPracticeIndex(next);
     if (next < practiceQuestions.length) {
       resetPracticeUi();
+      setQuestionStartTime(Date.now());
     }
   };
+
+  // Reset question timer when moving to next question
+  useEffect(() => {
+    if (mode === 'practice' && practiceQuestions.length > 0) {
+      setQuestionStartTime(Date.now());
+    }
+  }, [practiceIndex, mode, practiceQuestions.length]);
 
   // Keyboard shortcuts for review
   useEffect(() => {

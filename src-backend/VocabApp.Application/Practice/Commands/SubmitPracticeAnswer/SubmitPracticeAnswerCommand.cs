@@ -6,4 +6,5 @@ namespace VocabApp.Application.Practice.Commands.SubmitPracticeAnswer;
 public sealed record SubmitPracticeAnswerCommand(
     string QuestionId,
     string UserAnswer,
-    string Type) : IRequest<PracticeAnswerResponse>;
+    string Type,
+    long TimeTakenMs = 0) : IRequest<PracticeAnswerResponse>;

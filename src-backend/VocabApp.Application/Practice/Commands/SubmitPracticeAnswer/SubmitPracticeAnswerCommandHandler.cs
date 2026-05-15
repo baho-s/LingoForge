@@ -67,7 +67,11 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
             var isCorrect = evaluation.Score >= 70;
             if (isCorrect)
             {
+                // AI Sentence: Score'u Q skoru olarak kullan (0-100 → 0-5)
+                var qScore = (int)Math.Round(evaluation.Score / 20f); // 70→3, 80→4, 100→5
+                word.RecordReviewByQScore(true, request.TimeTakenMs);
                 user.RecordReview(DateTime.UtcNow);
+                _wordRepository.Update(word);
                 _userRepository.Update(user);
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
@@ -82,12 +86,12 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
         var isMatch = string.Equals(answer, word.Translation, StringComparison.OrdinalIgnoreCase)
             || string.Equals(answer, word.Original, StringComparison.OrdinalIgnoreCase);
 
-        if (isMatch)
-        {
-            user.RecordReview(DateTime.UtcNow);
-            _userRepository.Update(user);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
+        // Q score mapping ile SM-2 algoritmasını uygula
+        word.RecordReviewByQScore(isMatch, request.TimeTakenMs);
+        user.RecordReview(DateTime.UtcNow);
+        _wordRepository.Update(word);
+        _userRepository.Update(user);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new PracticeAnswerResponse(
             isMatch,

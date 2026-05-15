@@ -76,6 +76,17 @@ public sealed class Word : AggregateRoot<WordId>
         AddDomainEvent(new WordReviewedEvent(Id, OwnerId, outcome));
     }
 
+    /// <summary>
+    /// Practice sekmesinden gelen cevap doğruluğu ve zaman bilgisine göre SM-2 algoritmasını uygular.
+    /// Time-aware scoring: Hızlı doğru cevap → Easy, Yavaş doğru cevap → Hard, Yanlış → Again
+    /// </summary>
+    public void RecordReviewByQScore(bool isCorrect, long timeTakenMs)
+    {
+        var qScore = ReviewInfo.CalculateQScore(isCorrect, timeTakenMs);
+        var outcome = ReviewInfo.QScoreToReviewOutcome(qScore);
+        RecordReview(outcome);
+    }
+
     private static ReviewInfo CalculateNextReview(ReviewOutcome outcome, ReviewInfo current)
     {
         var repetitions = current.Repetitions;

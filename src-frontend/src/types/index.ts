@@ -104,6 +104,7 @@ export interface PracticeAnswerPayload {
   question_id: string;
   type: PracticeQuestionType;
   user_answer: string;
+  time_taken_ms: number;
 }
 
 export interface PracticeAnswerResponse {
