@@ -62,7 +62,9 @@ Common/
  Entity.cs
  IDomainEvent.cs
  IDomainEventSource.cs
-Entities/Badge.cs
+Entities/
+ Badge.cs
+ UserVocabularyProgress.cs
 Enums/
  BadgeType.cs
  ReviewOutcome.cs
@@ -78,12 +80,14 @@ Repositories/
  IPredefinedWordRepository.cs
  IUnitOfWork.cs
  IUserRepository.cs
+ IUserVocabularyProgressRepository.cs
  IWordRepository.cs
 ValueObjects/
  Field.cs
  PredefinedWordId.cs
  ReviewInfo.cs
  UserId.cs
+ UserVocabularyProgressId.cs
  WordId.cs
 
 [metadataReferences]

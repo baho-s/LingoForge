@@ -79,6 +79,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IWordRepository, WordRepository>();
         services.AddScoped<IPredefinedWordRepository, PredefinedWordRepository>();
+        services.AddScoped<IUserVocabularyProgressRepository, UserVocabularyProgressRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;

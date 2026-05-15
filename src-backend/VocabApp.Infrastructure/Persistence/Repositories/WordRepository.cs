@@ -64,12 +64,14 @@ public sealed class WordRepository : IWordRepository
     /// <summary>
     /// Practice sekmesinden sorular seçmek için optimize edilmiş method.
     /// NextReviewAt'a göre kullanıcının hangi kelimeleri yapması gerektiğini belirler.
+    /// ✅ YENİ: UserVocabularyProgress ile consecutive selections kontrol edilerek tekrar engellenir.
     /// 
     /// DATABASE OPTIMIZATION:
     /// - SORUN 1 ÇÖZÜMÜ: Bütün kelimeleri çekmek yerine database'de sorgulanır
     /// - SORUN 2 ÇÖZÜMÜ: NextReviewAt'a göre sıralama yapılır
     /// - SORUN 3 ÇÖZÜMÜ: Overdue olanlar tanımlanır (NextReviewAt <= now)
     /// - SORUN 4 ÇÖZÜMÜ: EaseFactor'e göre zor olanlar seçilir
+    /// - ✅ YENİ: Consecutive selections kontrol edilerek tekrar engellenir
     /// </summary>
     public async Task<IReadOnlyList<Word>> GetWordsForPracticeAsync(
         UserId ownerId, 

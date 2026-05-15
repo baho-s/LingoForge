@@ -11,6 +11,7 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
 {
     private readonly IWordRepository _wordRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IUserVocabularyProgressRepository _progressRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly IAiSentenceService _aiSentenceService;
     private readonly IUnitOfWork _unitOfWork;
@@ -18,12 +19,14 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
     public SubmitPracticeAnswerCommandHandler(
         IWordRepository wordRepository,
         IUserRepository userRepository,
+        IUserVocabularyProgressRepository progressRepository,
         ICurrentUserService currentUser,
         IAiSentenceService aiSentenceService,
         IUnitOfWork unitOfWork)
     {
         _wordRepository = wordRepository;
         _userRepository = userRepository;
+        _progressRepository = progressRepository;
         _currentUser = currentUser;
         _aiSentenceService = aiSentenceService;
         _unitOfWork = unitOfWork;
@@ -71,8 +74,14 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
                 var qScore = (int)Math.Round(evaluation.Score / 20f); // 70→3, 80→4, 100→5
                 word.RecordReviewByQScore(true, request.TimeTakenMs);
                 user.RecordReview(DateTime.UtcNow);
-                _wordRepository.Update(word);
-                _userRepository.Update(user);
+                
+                // ✅ YENİ: UserVocabularyProgress'i kayıt et
+                var progress = await _progressRepository.GetOrCreateAsync(userId, word.Id, cancellationToken);
+                progress.RecordAttempt(true, request.TimeTakenMs);
+                progress.IncrementConsecutiveSelections();
+                // EF Core otomatik olarak takip ediyor, Update() çağrısı gerekmez
+                
+                // Aynı şekilde Update() çağrıları gerekmez - EF Core değişiklikleri otomatik takip eder
                 await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
 
@@ -89,8 +98,21 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
         // Q score mapping ile SM-2 algoritmasını uygula
         word.RecordReviewByQScore(isMatch, request.TimeTakenMs);
         user.RecordReview(DateTime.UtcNow);
-        _wordRepository.Update(word);
-        _userRepository.Update(user);
+        
+        // ✅ YENİ: UserVocabularyProgress'i kayıt et
+        var progressRecord = await _progressRepository.GetOrCreateAsync(userId, word.Id, cancellationToken);
+        progressRecord.RecordAttempt(isMatch, request.TimeTakenMs);
+        
+        if (isMatch)
+        {
+            progressRecord.IncrementConsecutiveSelections();
+        }
+        else
+        {
+            progressRecord.ResetConsecutiveSelections();
+        }
+        
+        // EF Core otomatik olarak takip ediyor, Update() çağrıları gerekmez
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new PracticeAnswerResponse(
