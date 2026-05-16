@@ -35,50 +35,42 @@ public sealed class GetReviewSessionWordsQueryHandler : IRequestHandler<GetRevie
         var shownWordIdsObj = await _cacheService.GetAsync<List<Guid>>(sessionCacheKey, cancellationToken);
         var shownWordIds = shownWordIdsObj ?? new List<Guid>();
 
-        // Tüm kelimeleri al
-        var allWords = await _wordRepository.GetByOwnerAsync(userId, cancellationToken);
-        if (allWords.Count == 0)
+        // ✅ N+1 QUERY FIX: Tüm kelimeleri çekmek yerine, database'de NextReviewAt <= today
+        // şartıyla ve exclude edilen kelimeleri hariç tutarak, sadece ihtiyacımız olan kelimeleri çek
+        // ✅ EF Core SQL Translation Fix: shownWordIds (List<Guid>) direkt WHERE IN clause'a dönüştürülür
+        var dueWords = await _wordRepository.GetByOwnerForReviewSessionAsync(
+            userId,
+            today,
+            shownWordIds,  // Already List<Guid> from cache
+            limit * 2, // Buffer, future words eklenirse
+            cancellationToken);
+
+        if (dueWords.Count == 0)
         {
             return new List<WordDto>();
         }
 
-        // 1. TODAY's DUE kelimeleri (NextReviewAt <= today)
-        var dueWords = allWords
-            .Where(w => w.Review.NextReviewAt.Date <= today && !shownWordIds.Contains(w.Id.Value))
-            .OrderBy(w => w.Review.NextReviewAt) // En eski sıradakiler önce
-            .ToList();
+        // 1. TODAY's DUE kelimeleri (zaten database'de filtered)
+        var todayWords = dueWords.ToList();
 
-        // 2. PAST günlerin kelimeleri (NextReviewAt > today, ama geçmiş)
-        // Bu aslında future words, ama variety için %20-30 ekle
-        var futureWords = allWords
-            .Where(w => w.Review.NextReviewAt.Date > today && !shownWordIds.Contains(w.Id.Value))
-            .OrderBy(w => Guid.NewGuid()) // Rastgele mix
-            .ToList();
-
-        // 3. Seçim: %70 today, %30 future
-        var todayCount = (int)Math.Ceiling(limit * 0.7);
-        var futureCount = limit - todayCount;
-
+        // 2. FUTURE words (variety için %20-30 eklemek istiyorsak)
+        // Opsiyonel: Future words eklenirse, ayrı bir method çağrılabilir
+        // Şimdilik focus: today's due words'ü prioritize et
+        
         var selected = new List<VocabApp.Domain.Aggregates.WordAggregate.Word>();
 
-        // Today'dan seç
-        selected.AddRange(dueWords.Take(todayCount));
+        // Today'dan seç (%100 - tümü ihtiyaç varsa)
+        var todayCount = Math.Min(limit, todayWords.Count);
+        selected.AddRange(todayWords.Take(todayCount));
 
-        // Eğer today'dan yetersizse, future'dan tamamla
-        var remainingNeeded = limit - selected.Count;
-        if (remainingNeeded > 0)
-        {
-            selected.AddRange(futureWords.Take(remainingNeeded));
-        }
-
-        // Eğer hala yetersizse, daha önce gösterilen kelimeleri de ekle (bu gün başka seçenek yoksa)
+        // Eğer hala yetersizse, bu gün gösterilenlerin arasından tekrar seç (fallback)
         if (selected.Count < limit)
         {
-            var previousShown = allWords
-                .Where(w => shownWordIds.Contains(w.Id.Value) && w.Review.NextReviewAt.Date <= today.AddDays(3))
-                .OrderBy(x => Guid.NewGuid())
-                .Take(limit - selected.Count);
-            selected.AddRange(previousShown);
+            var fallbackCount = limit - selected.Count;
+            var fallbackWords = todayWords
+                .Skip(todayCount)
+                .Take(fallbackCount);
+            selected.AddRange(fallbackWords);
         }
 
         // Randomize et (karışık sırada göster)

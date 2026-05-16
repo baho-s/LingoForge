@@ -27,8 +27,17 @@ public static class DependencyInjection
         var jwtSection = configuration.GetSection("Jwt");
         services.Configure<JwtOptions>(jwtSection);
 
-        var groqSection = configuration.GetSection("Groq");
-        services.Configure<GroqOptions>(groqSection);
+        var groqApiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") 
+            ?? configuration["Groq:ApiKey"] 
+            ?? throw new InvalidOperationException("Groq API Key is not configured");
+
+        services.Configure<GroqOptions>(options =>
+        {
+            options.ApiKey = groqApiKey;
+            options.BaseUrl = configuration["Groq:BaseUrl"] ?? "https://api.groq.com";
+            options.Model = configuration["Groq:Model"] ?? "llama-3.1-8b-instant";
+            options.MaxTokens = int.Parse(configuration["Groq:MaxTokens"] ?? "80");
+        });
 
         var jwtOptions = jwtSection.Get<JwtOptions>();
         if (jwtOptions is null || string.IsNullOrWhiteSpace(jwtOptions.Secret))

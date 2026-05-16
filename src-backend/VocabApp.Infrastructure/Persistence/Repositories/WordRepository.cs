@@ -107,6 +107,39 @@ public sealed class WordRepository : IWordRepository
             .ToListAsync(ct);
     }
 
+    /// <summary>
+    /// Review session için optimize edilmiş query.
+    /// NextReviewAt <= today olan kelimeleri dönerek, memory'de filtering'i ortadan kaldırır.
+    /// ✅ N+1 QUERY ÇÖZÜMÜ: Database'de filtering yapılır, tüm words yerine sadece gerekli olanlar çekilir
+    /// </summary>
+    public async Task<IReadOnlyList<Word>> GetByOwnerForReviewSessionAsync(
+        UserId ownerId,
+        DateTime today,
+        IEnumerable<Guid> excludeWordGuids,
+        int limit,
+        CancellationToken ct = default)
+    {
+        var excludeGuids = excludeWordGuids.ToList();
+        
+        // ✅ SQL FIRST: Database'de NextReviewAt, Owner, ordering ile filter et ve LIMIT uygula
+        // ⚠️ Value Object (.Id.Value) SQL translation için memory'e kaldırıldı
+        var words = await _dbContext.Words
+            .Where(w => w.OwnerId == ownerId)
+            // ✅ Database seviyesinde filtering: NextReviewAt <= today
+            .Where(w => w.Review.NextReviewAt.Date <= today)
+            // ✅ Database seviyesinde ordering: En eski sıradakiler (en gecikmişler) önce
+            .OrderBy(w => w.Review.NextReviewAt)
+            // ✅ limit*2 buffer: Memory'de exclude edildikten sonra yeterli kayıt olsun
+            .Take(limit * 2)
+            .ToListAsync(ct);
+        
+        // ✅ THEN FILTER IN MEMORY: Value Object comparison memory'de yapılır
+        return words
+            .Where(w => !excludeGuids.Contains(w.Id.Value))
+            .Take(limit)
+            .ToList();
+    }
+
     public void Add(Word word)
     {
         _dbContext.Words.Add(word);

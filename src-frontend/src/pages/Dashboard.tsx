@@ -21,18 +21,15 @@ export default function Dashboard() {
       setWordOfDay(data);
     } catch {
       console.error('Failed to fetch word of day');
+      setWordOfDay(null);
     }
   };
 
   useEffect(() => {
     const fetch = async () => {
       try {
-        const [dashRes, wodRes] = await Promise.all([
-          dashboardApi.get(),
-          dashboardApi.getWordOfDay(),
-        ]);
+        const dashRes = await dashboardApi.get();
         setDashboard(dashRes.data);
-        setWordOfDay(wodRes.data);
       } catch {
         setError(t('dashboard.failedToLoadDashboard'));
       } finally {
@@ -40,6 +37,7 @@ export default function Dashboard() {
       }
     };
     fetch();
+    fetchWordOfDay();
 
     // Her 20 dakikada bir kelimeyi yenile (1200000 ms = 20 dakika)
     const interval = setInterval(fetchWordOfDay, 20 * 60 * 1000);
@@ -90,10 +88,11 @@ export default function Dashboard() {
         </div>
       ) : !loading && (
         <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 text-center">
-          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-            <BookOpen size={20} className="text-gray-400" />
+          <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
+            <BookOpen size={20} className="text-blue-600" />
           </div>
-          <p className="text-sm text-gray-500">{t('dashboard.noWordsYet')}</p>
+          <p className="text-lg font-semibold text-gray-900 mb-1">📚 Günün Kelimesi Hazır Değil</p>
+          <p className="text-sm text-gray-500 mb-4">Öğrenmeye başlamak için ilk kelimeyi ekleyiniz</p>
           <button
             onClick={() => navigate('/words')}
             className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"

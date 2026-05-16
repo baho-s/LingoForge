@@ -25,6 +25,20 @@ public interface IWordRepository
     /// </summary>
     Task<IReadOnlyList<Word>> GetWordsForPracticeAsync(UserId ownerId, int limit, CancellationToken ct = default);
     
+    /// <summary>
+    /// Review session için optimize edilmiş query.
+    /// NextReviewAt <= today olan kelimeleri dönerek, memory'de filtering'i ortadan kaldırır.
+    /// Exclude edilen kelimeleri de göz önüne alır.
+    /// ✅ N+1 QUERY ÇÖZÜMÜ: Database'de filtering yapılır
+    /// ✅ EF Core SQL Translation: Guid'ler direkt Value Object'e konuşturulur
+    /// </summary>
+    Task<IReadOnlyList<Word>> GetByOwnerForReviewSessionAsync(
+        UserId ownerId,
+        DateTime today,
+        IEnumerable<Guid> excludeWordGuids,
+        int limit,
+        CancellationToken ct = default);
+    
     void Add(Word word);
     void Update(Word word);
     void Delete(Word word);

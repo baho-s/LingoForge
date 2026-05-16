@@ -12,7 +12,7 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(
-                "https://lingo-forge-iota.vercel.app/", // Canlı linkin dursun
+                "https://lingo-forge-iota.vercel.app", // Canlı linkin dursun
                 "http://localhost:5173"                   // VİRGÜL KOYUP BUNU EKLE (Vite'ın varsayılan portu)
             ) 
                   .AllowAnyHeader()
@@ -37,10 +37,13 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 
+
 app.UseCors("AllowVercel");
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 
 // DevController'ı production'dan exclude et
 #if !DEBUG
