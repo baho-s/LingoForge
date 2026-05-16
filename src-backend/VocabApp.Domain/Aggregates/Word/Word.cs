@@ -119,7 +119,11 @@ public sealed class Word : AggregateRoot<WordId>
             };
         }
 
-        var nextReviewAt = now.AddDays(intervalDays);
+        // İlk tekrarda 4 saat sonra tekrar göster (aynı gün tekrar mümkün)
+        // 2. tekrarda ve sonrasında SM-2 algoritmasını uygula
+        var nextReviewAt = current.Repetitions == 0 && repetitions == 1
+            ? now.AddHours(4)
+            : now.AddDays(intervalDays);
         return new ReviewInfo(intervalDays, easeFactor, repetitions, nextReviewAt, now);
     }
 }
