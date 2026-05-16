@@ -38,14 +38,21 @@ export default function Practice() {
   const [error, setError] = useState('');
   const { addToast } = useToast();
 
-  const startReview = async () => {
+  const startReview = async (includeAll: boolean = false) => {
     setReviewLoading(true);
     setError('');
     setReviewComplete(false);
     try {
-      const { data } = await wordsApi.getReviewSessionWords(8);
+      const { data } = await wordsApi.getReviewSessionWords(8, includeAll);
       if (data.length === 0) {
-        setError(t('practice.noDueWords'));
+        // Eğer includeAll true idi ve hala 0 ise: hiç kelime yok
+        if (includeAll) {
+          setError(t('practice.noWordsAvailable'));
+        } else {
+          // includeAll false ve 0 ise: tekrar yapılacak kelime yok
+          // "allWordsReviewed" mesajı göstereceğiz - bu başka yerde olmalı
+          setError(t('practice.noDueWords'));
+        }
         setReviewLoading(false);
         return;
       }
@@ -91,7 +98,7 @@ export default function Practice() {
     try {
       const { data } = await practiceApi.getQuestions([m], 8);
       if (!data.questions.length) {
-        setError(t('practice.noPracticeQuestions'));
+        setError(t('practice.noPracticeWordsAvailable'));
         return;
       }
       setPracticeQuestions(data.questions);
@@ -246,7 +253,7 @@ export default function Practice() {
         <h2 className="text-2xl font-bold text-gray-900">{t('practice.practice')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
-            onClick={startReview}
+            onClick={() => startReview()}
             disabled={reviewLoading}
             className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100 hover:shadow-md hover:border-blue-200 transition-all text-left group"
           >
@@ -305,6 +312,7 @@ export default function Practice() {
     if (!word) return null;
 
     if (reviewComplete) {
+      const allWordsReviewed = reviewWords.length > 0 && reviewWords.length === reviewedCount;
       return (
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="bg-white rounded-2xl shadow-md p-12 border border-gray-100 text-center">
@@ -312,9 +320,15 @@ export default function Practice() {
               <Brain size={32} className="text-green-600" />
             </div>
             <p className="text-3xl font-bold text-gray-900 mb-2">{t('practice.sessionCompleteTitle')}</p>
-            <p className="text-gray-500 text-sm mb-6">
-              {t('practice.youReviewed')} {reviewedCount} {t('practice.of')} {reviewWords.length} {t('practice.words')}.
-            </p>
+            {allWordsReviewed ? (
+              <p className="text-gray-500 text-sm mb-6">
+                {t('practice.allWordsReviewed')}
+              </p>
+            ) : (
+              <p className="text-gray-500 text-sm mb-6">
+                {t('practice.youReviewed')} {reviewedCount} {t('practice.of')} {reviewWords.length} {t('practice.words')}.
+              </p>
+            )}
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => { setMode('select'); setReviewComplete(false); }}
@@ -323,7 +337,7 @@ export default function Practice() {
                 {t('practice.backToPractice')}
               </button>
               <button
-                onClick={startReview}
+                onClick={() => startReview(allWordsReviewed)}
                 className="px-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
               >
                 {t('practice.reviewAgain')}

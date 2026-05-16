@@ -31,9 +31,10 @@ public sealed class GetReviewSessionWordsQueryHandler : IRequestHandler<GetRevie
         var today = now.Date;
 
         // Aynı gün içinde gösterilen kelimeleri cache'ten oku
+        // ✅ IncludeAll=true ise cache'i bypass et (bütün kelimeleri tekrar göster)
         var sessionCacheKey = $"review-session:{userId.Value}:{today:yyyy-MM-dd}";
         var shownWordIdsObj = await _cacheService.GetAsync<List<Guid>>(sessionCacheKey, cancellationToken);
-        var shownWordIds = shownWordIdsObj ?? new List<Guid>();
+        var shownWordIds = request.IncludeAll ? new List<Guid>() : (shownWordIdsObj ?? new List<Guid>());
 
         // ✅ N+1 QUERY FIX: Tüm kelimeleri çekmek yerine, database'de NextReviewAt <= today
         // şartıyla ve exclude edilen kelimeleri hariç tutarak, sadece ihtiyacımız olan kelimeleri çek
@@ -78,10 +79,13 @@ public sealed class GetReviewSessionWordsQueryHandler : IRequestHandler<GetRevie
             .OrderBy(x => Guid.NewGuid())
             .ToList();
 
-        // Bu session'da gösterilen kelimeleri cache'e kaydet
-        var newShownIds = shownWordIds.Concat(shuffled.Select(w => w.Id.Value)).Distinct().ToList();
-        var ttlUntilMidnight = today.AddDays(1) - now;
-        await _cacheService.SetAsync(sessionCacheKey, newShownIds, ttlUntilMidnight, cancellationToken);
+        // Bu session'da gösterilen kelimeleri cache'e kaydet (IncludeAll false ise)
+        if (!request.IncludeAll)
+        {
+            var newShownIds = shownWordIds.Concat(shuffled.Select(w => w.Id.Value)).Distinct().ToList();
+            var ttlUntilMidnight = today.AddDays(1) - now;
+            await _cacheService.SetAsync(sessionCacheKey, newShownIds, ttlUntilMidnight, cancellationToken);
+        }
 
         return shuffled.Select(WordDto.FromEntity).ToList();
     }

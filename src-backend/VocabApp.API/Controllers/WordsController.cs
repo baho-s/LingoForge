@@ -38,9 +38,10 @@ public sealed class WordsController : ControllerBase
     [HttpGet("review/session")]
     public async Task<ActionResult<IReadOnlyList<WordDto>>> GetReviewSessionWords(
         [FromQuery] int limit = 8,
+        [FromQuery] bool includeAll = false,
         CancellationToken cancellationToken = default)
     {
-        var result = await _sender.Send(new GetReviewSessionWordsQuery(limit), cancellationToken);
+        var result = await _sender.Send(new GetReviewSessionWordsQuery(limit, includeAll), cancellationToken);
         return Ok(result);
     }
 

@@ -25,8 +25,8 @@ export const authApi = {
 export const wordsApi = {
   getAll: (skip: number = 0, take: number = 100) =>
     client.get<WordDto[]>('/api/words', { params: { skip, take } }),
-  getReviewSessionWords: (limit: number = 8) =>
-    client.get<WordDto[]>('/api/words/review/session', { params: { limit } }),
+  getReviewSessionWords: (limit: number = 8, includeAll: boolean = false) =>
+    client.get<WordDto[]>('/api/words/review/session', { params: { limit, include_all: includeAll } }),
   add: (payload: AddWordPayload) => client.post<WordDto>('/api/words', payload),
   bulkGenerate: () => client.post<BulkGenerateResult>('/api/words/bulk-generate'),
   review: (id: string, payload: ReviewPayload) =>

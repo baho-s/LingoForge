@@ -41,7 +41,7 @@ public sealed class WordRepository : IWordRepository
     {
         var normalizedField = field.Trim();
         return await _dbContext.Words
-            .Where(word => word.OwnerId == ownerId && word.Field == normalizedField)
+            .Where(word => word.OwnerId == ownerId && (string.IsNullOrEmpty(normalizedField) ? string.IsNullOrEmpty(word.Field) : word.Field == normalizedField))
             .OrderByDescending(word => word.CreatedAt)
             .ToListAsync(ct);
     }

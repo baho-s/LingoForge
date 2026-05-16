@@ -240,7 +240,10 @@ export default function Words() {
     setDeletingField(true);
     try {
       const { data } = await wordsApi.bulkDeleteByField(field);
-      setWords((prev) => prev.filter((w) => w.field !== field));
+      setWords((prev) => prev.filter((w) => {
+        const wordField = w.field || '_no_field';
+        return wordField !== field;
+      }));
       // Reset pagination for this field
       setDisplayedCountByField((prev) => {
         const newMap = new Map(prev);
@@ -384,9 +387,18 @@ export default function Words() {
                 </div>
               )}
               {field === '_no_field' && fieldWords.length > 0 && (
-                <div className="mb-4 pb-2 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">Sizin Kelimeleriniz</h3>
-                  <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Sizin Kelimeleriniz</h3>
+                    <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
+                  </div>
+                  <button
+                    onClick={() => setDeleteFieldTarget(field)}
+                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Trash2 size={16} />
+                    Tümünü Sil
+                  </button>
                 </div>
               )}
 
@@ -552,9 +564,11 @@ export default function Words() {
                 <AlertTriangle size={20} className="text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{deleteFieldTarget} Alanındaki Kelimeleri Sil</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget} Alanındaki Kelimeleri Sil
+                </h3>
                 <p className="text-sm text-gray-500">
-                  "<span className="font-medium text-gray-700">{deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{filtered.filter(w => w.field === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
+                  "<span className="font-medium text-gray-700">{deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{filtered.filter(w => (w.field || '_no_field') === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
                 </p>
               </div>
             </div>

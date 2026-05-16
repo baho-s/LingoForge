@@ -7,7 +7,8 @@ public sealed class BulkDeleteWordsByFieldCommandValidator : AbstractValidator<B
     public BulkDeleteWordsByFieldCommandValidator()
     {
         RuleFor(c => c.Field)
-            .NotEmpty().WithMessage("Field is required.")
+            .Must(f => f == "_no_field" || !string.IsNullOrWhiteSpace(f))
+            .WithMessage("Field is required or must be '_no_field'.")
             .MaximumLength(100).WithMessage("Field must not exceed 100 characters.");
     }
 }

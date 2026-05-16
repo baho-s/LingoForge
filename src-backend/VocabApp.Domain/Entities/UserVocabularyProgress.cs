@@ -26,7 +26,11 @@ public sealed class UserVocabularyProgress : Entity<UserVocabularyProgressId>
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
-    private UserVocabularyProgress() { }
+    private UserVocabularyProgress()
+    {
+        UserId = null!;
+        WordId = null!;
+    }
 
     private UserVocabularyProgress(
         UserVocabularyProgressId id,
