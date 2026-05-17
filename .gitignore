@@ -25,6 +25,7 @@ pnpm-debug.log*
 *.pfx
 *.publishsettings
 appsettings.Development.json
+publish/
 
 
 
@@ -36,4 +37,5 @@ appsettings.Development.json
 .DS_Store
 Thumbs.db
 .github
+
 
