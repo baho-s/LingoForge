@@ -54,24 +54,23 @@ export default function Words() {
 
   const fetchWords = async (skip: number = 0, take: number = 100) => {
     try {
-      const { data } = await wordsApi.getAll(skip, take);
       if (skip === 0) {
-        // Initial load
+        // Smart fetch when starting fresh
+        const { data } = await wordsApi.getAll(0, 100);
         setWords(data.words);
         setTotalCount(data.totalCount);
-        setDisplayedCountByField({}); // Reset pagination state
+        setDisplayedCountByField({}); // Reset pagination
         
-
-
-        // Smart fetch: if there are more words and we haven't fetched them all yet
-        if (data.totalCount > take && take < 2000) {
+        // If there are more words, fetch all up to smart limit (2000)
+        if (data.totalCount > 100) {
           const smartTake = Math.min(data.totalCount, 2000);
-          const { data: moreData } = await wordsApi.getAll(0, smartTake);
-          setWords(moreData.words);
-          setTotalCount(moreData.totalCount);
+          const { data: allData } = await wordsApi.getAll(0, smartTake);
+          setWords(allData.words);
+          setTotalCount(allData.totalCount);
         }
       } else {
-        // Append more data
+        // Pagination: append more data
+        const { data } = await wordsApi.getAll(skip, take);
         setWords((prev) => [...prev, ...data.words]);
         setTotalCount(data.totalCount);
       }
@@ -173,20 +172,18 @@ export default function Words() {
       [field]: nextDisplayed,
     }));
 
-    // Check if we need to fetch more data from backend
-    const fieldWords = groupedByField[field] || [];
-    const totalFieldWords = fieldWords.length;
-
-    // If displayed count exceeds loaded data and we haven't hit smart limit (2000), we might need more data
-    if (nextDisplayed > totalFieldWords && totalCount < 2000) {
+    // Check if we have enough data loaded globally
+    // If our current words count is less than smart limit, fetch more
+    if (words.length < totalCount && words.length < 2000) {
       setLoadingMoreByField((prev) => ({
         ...prev,
         [field]: true,
       }));
 
       try {
-        // Increase smart fetch limit
-        const { data } = await wordsApi.getAll(0, Math.min(totalCount + 500, 2000));
+        // Fetch more data up to smart limit (2000)
+        const smartTake = Math.min(totalCount, 2000);
+        const { data } = await wordsApi.getAll(0, smartTake);
         setWords(data.words);
       } catch {
         addToast(t('common.error'), 'error');
