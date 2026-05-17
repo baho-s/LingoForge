@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, Component, type ReactNode } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Plus, Sparkles, X, Loader2, ArrowUpDown, AlertTriangle, BookOpen, Trash2 } from 'lucide-react';
 import { wordsApi } from '../api/endpoints';
@@ -13,47 +13,7 @@ type SortKey = 'createdAt' | 'original' | 'nextReviewAt';
 type SortDir = 'asc' | 'desc';
 type FilterKey = 'all' | 'due' | 'notDue';
 
-// ─── Error Boundary ────────────────────────────────────────────────────────────
-// Production React shows a blank white screen for any uncaught render error.
-// This catches it and shows a human-readable message instead.
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; message: string }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false, message: '' };
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, message: error?.message ?? 'Bilinmeyen hata' };
-  }
-
-  componentDidCatch(error: Error, info: { componentStack: string }) {
-    console.error('[Words ErrorBoundary]', error, info);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="max-w-5xl mx-auto py-16 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-            <AlertTriangle size={28} className="text-red-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-900">Bir şeyler ters gitti</h2>
-          <p className="text-sm text-gray-500">{this.state.message}</p>
-          <button
-            onClick={() => this.setState({ hasError: false, message: '' })}
-            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            Tekrar Dene
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-// ─── Main Component ────────────────────────────────────────────────────────────
-function WordsInner() {
+export default function Words() {
   const { t } = useTranslation();
   const [words, setWords] = useState<WordDto[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -87,36 +47,34 @@ function WordsInner() {
   const [showFieldImport, setShowFieldImport] = useState(false);
 
   // Pagination per field
-  const ITEMS_PER_LOAD = 3;
   const [displayedCountByField, setDisplayedCountByField] = useState<Record<string, number>>({});
   const [loadingMoreByField, setLoadingMoreByField] = useState<Record<string, boolean>>({});
 
   const { addToast } = useToast();
 
-  // ─── Single, clean fetch function (no duplicate logic) ──────────────────────
-  const fetchWords = async () => {
+  const fetchWords = async (skip: number = 0, take: number = 100) => {
     try {
-      // Step 1: fast first paint with initial batch
-      const { data: initial } = await wordsApi.getAll(0, 100);
-      // Guard: production API may return unexpected shape
-      const initialWords: WordDto[] = Array.isArray(initial?.words) ? initial.words : [];
-      const initialTotal: number = typeof initial?.totalCount === 'number' ? initial.totalCount : 0;
-      setWords(initialWords);
-      setTotalCount(initialTotal);
-      setDisplayedCountByField({});
-
-      // Step 2: if there are more, fetch the rest (capped at 2 000)
-      if (initialTotal > 100) {
-        const take = Math.min(initialTotal, 2000);
-        const { data: full } = await wordsApi.getAll(0, take);
-        const fullWords: WordDto[] = Array.isArray(full?.words) ? full.words : initialWords;
-        const fullTotal: number = typeof full?.totalCount === 'number' ? full.totalCount : initialTotal;
-        setWords(fullWords);
-        setTotalCount(fullTotal);
-        setDisplayedCountByField({});
+      if (skip === 0) {
+        // Smart fetch when starting fresh
+        const { data } = await wordsApi.getAll(0, 100);
+        setWords(data.words);
+        setTotalCount(data.totalCount);
+        setDisplayedCountByField({}); // Reset pagination
+        
+        // If there are more words, fetch all up to smart limit (2000)
+        if (data.totalCount > 100) {
+          const smartTake = Math.min(data.totalCount, 2000);
+          const { data: allData } = await wordsApi.getAll(0, smartTake);
+          setWords(allData.words);
+          setTotalCount(allData.totalCount);
+        }
+      } else {
+        // Pagination: append more data
+        const { data } = await wordsApi.getAll(skip, take);
+        setWords((prev) => [...prev, ...data.words]);
+        setTotalCount(data.totalCount);
       }
-    } catch (err) {
-      console.error('[fetchWords]', err);
+    } catch {
       setError(t('common.error'));
     } finally {
       setLoading(false);
@@ -124,16 +82,42 @@ function WordsInner() {
   };
 
   useEffect(() => {
-    fetchWords();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const initialFetch = async () => {
+      try {
+        // First: fetch initial batch to get totalCount
+        const { data: initialData } = await wordsApi.getAll(0, 100);
+        setWords(initialData.words);
+        setTotalCount(initialData.totalCount);
+        
+        // Initialize pagination state
+        setDisplayedCountByField({});
+
+        // Second: if there are more words, fetch remaining (smart limit: max 2000)
+        if (initialData.totalCount > 100) {
+          const take = Math.min(initialData.totalCount, 2000);
+          const { data: allData } = await wordsApi.getAll(0, take);
+          setWords(allData.words);
+          setTotalCount(allData.totalCount);
+          
+          // Reset pagination state
+          setDisplayedCountByField({});
+        }
+      } catch {
+        setError(t('common.error'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialFetch();
   }, []);
 
-  // ─── Derived data ────────────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    const currentNow = new Date();
-    // Guard: ensure words is always an array before spreading
-    let result = Array.isArray(words) ? [...words] : [];
+  const now = new Date();
 
+  const filtered = useMemo(() => {
+    let result = [...words];
+
+    // Search
     const q = search.toLowerCase();
     if (q) {
       result = result.filter(
@@ -143,12 +127,14 @@ function WordsInner() {
       );
     }
 
+    // Filter
     if (filter === 'due') {
-      result = result.filter((w) => new Date(w.nextReviewAt) <= currentNow);
+      result = result.filter((w) => new Date(w.nextReviewAt) <= now);
     } else if (filter === 'notDue') {
-      result = result.filter((w) => new Date(w.nextReviewAt) > currentNow);
+      result = result.filter((w) => new Date(w.nextReviewAt) > now);
     }
 
+    // Sort
     result.sort((a, b) => {
       let cmp = 0;
       if (sortKey === 'createdAt') cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -160,40 +146,52 @@ function WordsInner() {
     return result;
   }, [words, search, sortKey, sortDir, filter]);
 
-  const dueCount = useMemo(
-    () => words.filter((w) => new Date(w.nextReviewAt) <= new Date()).length,
-    [words],
-  );
+  const dueCount = words.filter((w) => new Date(w.nextReviewAt) <= now).length;
+
+  const ITEMS_PER_LOAD = 3;
 
   const groupedByField = useMemo(() => {
-    const groups: Record<string, WordDto[]> = { _no_field: [] };
-    // Use forEach instead of for-of to avoid transpilation issues in production
-    (Array.isArray(filtered) ? filtered : []).forEach((word) => {
+    const groups: Record<string, WordDto[]> = { '_no_field': [] };
+    
+    filtered.forEach((word) => {
       const field = word.field || '_no_field';
       if (!groups[field]) groups[field] = [];
       groups[field].push(word);
     });
+
     return groups;
   }, [filtered]);
 
-  // ─── Handlers ────────────────────────────────────────────────────────────────
   const handleLoadMore = async (field: string) => {
-    const currentDisplayed = displayedCountByField[field] ?? ITEMS_PER_LOAD;
+    const currentDisplayed = displayedCountByField[field] || ITEMS_PER_LOAD;
     const nextDisplayed = currentDisplayed + ITEMS_PER_LOAD;
 
-    setDisplayedCountByField((prev) => ({ ...prev, [field]: nextDisplayed }));
+    // Update displayed count first
+    setDisplayedCountByField((prev) => ({
+      ...prev,
+      [field]: nextDisplayed,
+    }));
 
-    // Only hit the API if we haven't loaded everything yet
+    // Check if we have enough data loaded globally
+    // If our current words count is less than smart limit, fetch more
     if (words.length < totalCount && words.length < 2000) {
-      setLoadingMoreByField((prev) => ({ ...prev, [field]: true }));
+      setLoadingMoreByField((prev) => ({
+        ...prev,
+        [field]: true,
+      }));
+
       try {
+        // Fetch more data up to smart limit (2000)
         const smartTake = Math.min(totalCount, 2000);
         const { data } = await wordsApi.getAll(0, smartTake);
         setWords(data.words);
       } catch {
         addToast(t('common.error'), 'error');
       } finally {
-        setLoadingMoreByField((prev) => ({ ...prev, [field]: false }));
+        setLoadingMoreByField((prev) => ({
+          ...prev,
+          [field]: false,
+        }));
       }
     }
   };
@@ -211,7 +209,7 @@ function WordsInner() {
       setAddOriginal('');
       setAddTranslation('');
       setAddAiSentence(true);
-      await fetchWords();
+      await fetchWords(0, 100);
       addToast(t('words.addWordSuccess'), 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -224,7 +222,7 @@ function WordsInner() {
     setBulkLoading(true);
     try {
       const { data } = await wordsApi.bulkGenerate();
-      await fetchWords();
+      await fetchWords(0, 100);
       addToast(`${data.generated} cümle oluşturuldu. ${data.skipped} atlandı.`, 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -234,7 +232,7 @@ function WordsInner() {
   };
 
   const handleFieldImportSuccess = async (fieldName: string, importedCount: number) => {
-    await fetchWords();
+    await fetchWords(0, 100);
     addToast(`${importedCount} kelime "${fieldName}" alanından eklendi!`, 'success');
   };
 
@@ -255,13 +253,18 @@ function WordsInner() {
     setDeletingField(true);
     try {
       const { data } = await wordsApi.bulkDeleteByField(field);
-      setWords((prev) => prev.filter((w) => (w.field || '_no_field') !== field));
+      setWords((prev) => prev.filter((w) => {
+        const wordField = w.field || '_no_field';
+        return wordField !== field;
+      }));
       setTotalCount((prev) => Math.max(0, prev - data.deletedCount));
+      // Reset pagination for this field
       setDisplayedCountByField((prev) => {
-        const next = { ...prev };
-        delete next[field];
-        return next;
+        const newObj = { ...prev };
+        delete newObj[field];
+        return newObj;
       });
+
       addToast(`${data.deletedCount} kelime başarıyla silindi.`, 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -276,18 +279,15 @@ function WordsInner() {
     else { setSortKey(key); setSortDir('asc'); }
   };
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">{t('words.myWords')}</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {totalCount} kelime toplam, {dueCount} tekrar için hazır
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{totalCount} kelime toplam, {dueCount} tekrar için hazır</p>
         </div>
-        <div className="flex gap-3 flex-wrap">
+        <div className="flex gap-3">
           <button
             onClick={() => setShowFieldImport(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
@@ -349,7 +349,7 @@ function WordsInner() {
             <ArrowUpDown size={14} />
             <select
               value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              onChange={(e) => { setSortKey(e.target.value as SortKey); }}
               onClick={(e) => e.stopPropagation()}
               className="bg-transparent focus:outline-none cursor-pointer"
             >
@@ -378,21 +378,13 @@ function WordsInner() {
         </div>
       ) : (
         <div className="space-y-8">
-          {Object.entries(groupedByField).map(([field, fieldWords]) => {
-            // Skip empty groups
-            if (fieldWords.length === 0) return null;
-
-            const displayedCount = displayedCountByField[field] ?? ITEMS_PER_LOAD;
-            const isLoadingMore = loadingMoreByField[field] ?? false;
-            const hasMore = displayedCount < fieldWords.length;
-            const fieldLabel = field === '_no_field' ? 'Sizin Kelimeleriniz' : field;
-
-            return (
-              <div key={field}>
-                {/* Field Header */}
+          {Object.entries(groupedByField).map(([field, fieldWords]) => (
+            <div key={field}>
+              {/* Field Header with Bulk Delete */}
+              {field !== '_no_field' && (
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{fieldLabel}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{field}</h3>
                     <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
                   </div>
                   <button
@@ -403,11 +395,29 @@ function WordsInner() {
                     Tümünü Sil
                   </button>
                 </div>
+              )}
+              {field === '_no_field' && fieldWords.length > 0 && (
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Sizin Kelimeleriniz</h3>
+                    <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
+                  </div>
+                  <button
+                    onClick={() => setDeleteFieldTarget(field)}
+                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Trash2 size={16} />
+                    Tümünü Sil
+                  </button>
+                </div>
+              )}
 
-                {/* Words Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {fieldWords.slice(0, displayedCount).map((word) => {
-                    const isDue = new Date(word.nextReviewAt) <= new Date();
+              {/* Words Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {fieldWords
+                  .slice(0, displayedCountByField[field] || ITEMS_PER_LOAD)
+                  .map((word: WordDto) => {
+                    const isDue = new Date(word.nextReviewAt) <= now;
                     return (
                       <div
                         key={word.id}
@@ -430,49 +440,45 @@ function WordsInner() {
                         <p className="text-sm text-gray-500 mb-3">{word.translation}</p>
                         {word.aiSentence && (
                           <p className="text-xs text-gray-400 italic bg-gray-50 rounded-lg px-3 py-2">
-                            &ldquo;{word.aiSentence}&rdquo;
+                            "{word.aiSentence}"
                           </p>
                         )}
-                        <div className="mt-3 text-xs text-gray-400">
-                          Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}
+                        <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
+                          <span>Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}</span>
                         </div>
                       </div>
                     );
                   })}
-                </div>
-
-                {/* Load More — shows per-field count, not total */}
-                {hasMore && (
-                  <div className="mt-6 flex justify-center">
-                    <button
-                      onClick={() => handleLoadMore(field)}
-                      disabled={isLoadingMore}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isLoadingMore ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          Yükleniyor...
-                        </>
-                      ) : (
-                        <>
-                          <BookOpen size={16} />
-                          {/* FIX: show fieldWords.length, not totalCount */}
-                          Devamını Görüntüle ({displayedCount} / {fieldWords.length})
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
               </div>
-            );
-          })}
+
+              {/* Load More Button */}
+              {(displayedCountByField[field] || ITEMS_PER_LOAD) < fieldWords.length && (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => handleLoadMore(field)}
+                    disabled={loadingMoreByField[field] || false}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                  {loadingMoreByField[field] ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Yükleniyor...
+                      </>
+                    ) : (
+                      <>
+                        <BookOpen size={16} />
+                          Devamını Görüntüle ({(displayedCountByField[field] || ITEMS_PER_LOAD)} / {totalCount})
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* ── Modals ─────────────────────────────────────────────────────────── */}
-
-      {/* Add Word */}
+      {/* Add Word Modal */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setShowAdd(false)} />
@@ -524,7 +530,7 @@ function WordsInner() {
         </div>
       )}
 
-      {/* Delete Word */}
+      {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setDeleteTarget(null)} />
@@ -536,7 +542,7 @@ function WordsInner() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Kelime Sil</h3>
                 <p className="text-sm text-gray-500">
-                  &ldquo;<span className="font-medium text-gray-700">{deleteTarget.original}</span>&rdquo; kelimesini silmek istediğine emin misin? Bu işlem geri alınamaz.
+                  "<span className="font-medium text-gray-700">{deleteTarget.original}</span>" kelimesini silmek istediğine emin misin? Bu işlem geri alınamaz.
                 </p>
               </div>
             </div>
@@ -558,7 +564,7 @@ function WordsInner() {
         </div>
       )}
 
-      {/* Bulk Delete by Field */}
+      {/* Bulk Delete by Field Modal */}
       {deleteFieldTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setDeleteFieldTarget(null)} />
@@ -572,13 +578,7 @@ function WordsInner() {
                   {deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget} Alanındaki Kelimeleri Sil
                 </h3>
                 <p className="text-sm text-gray-500">
-                  &ldquo;<span className="font-medium text-gray-700">
-                    {deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget}
-                  </span>&rdquo; alanındaki{' '}
-                  <span className="font-medium text-gray-700">
-                    {filtered.filter((w) => (w.field || '_no_field') === deleteFieldTarget).length}
-                  </span>{' '}
-                  kelime silinecektir. Bu işlem geri alınamaz.
+                  "<span className="font-medium text-gray-700">{deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{filtered.filter(w => (w.field || '_no_field') === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
                 </p>
               </div>
             </div>
@@ -603,7 +603,7 @@ function WordsInner() {
         </div>
       )}
 
-      {/* Bulk AI loading overlay */}
+      {/* Bulk loading overlay */}
       {bulkLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
           <div className="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center gap-4">
@@ -621,14 +621,5 @@ function WordsInner() {
         onError={(msg) => addToast(msg, 'error')}
       />
     </div>
-  );
-}
-
-// ─── Export wrapped in ErrorBoundary ──────────────────────────────────────────
-export default function Words() {
-  return (
-    <ErrorBoundary>
-      <WordsInner />
-    </ErrorBoundary>
   );
 }
