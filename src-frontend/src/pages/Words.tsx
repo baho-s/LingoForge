@@ -98,16 +98,21 @@ function WordsInner() {
     try {
       // Step 1: fast first paint with initial batch
       const { data: initial } = await wordsApi.getAll(0, 100);
-      setWords(initial.words);
-      setTotalCount(initial.totalCount);
+      // Guard: production API may return unexpected shape
+      const initialWords: WordDto[] = Array.isArray(initial?.words) ? initial.words : [];
+      const initialTotal: number = typeof initial?.totalCount === 'number' ? initial.totalCount : 0;
+      setWords(initialWords);
+      setTotalCount(initialTotal);
       setDisplayedCountByField({});
 
       // Step 2: if there are more, fetch the rest (capped at 2 000)
-      if (initial.totalCount > 100) {
-        const take = Math.min(initial.totalCount, 2000);
+      if (initialTotal > 100) {
+        const take = Math.min(initialTotal, 2000);
         const { data: full } = await wordsApi.getAll(0, take);
-        setWords(full.words);
-        setTotalCount(full.totalCount);
+        const fullWords: WordDto[] = Array.isArray(full?.words) ? full.words : initialWords;
+        const fullTotal: number = typeof full?.totalCount === 'number' ? full.totalCount : initialTotal;
+        setWords(fullWords);
+        setTotalCount(fullTotal);
         setDisplayedCountByField({});
       }
     } catch (err) {
@@ -125,8 +130,9 @@ function WordsInner() {
 
   // ─── Derived data ────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    const currentNow = new Date(); // fresh per computation
-    let result = [...words];
+    const currentNow = new Date();
+    // Guard: ensure words is always an array before spreading
+    let result = Array.isArray(words) ? [...words] : [];
 
     const q = search.toLowerCase();
     if (q) {
@@ -161,11 +167,12 @@ function WordsInner() {
 
   const groupedByField = useMemo(() => {
     const groups: Record<string, WordDto[]> = { _no_field: [] };
-    for (const word of filtered) {
+    // Use forEach instead of for-of to avoid transpilation issues in production
+    (Array.isArray(filtered) ? filtered : []).forEach((word) => {
       const field = word.field || '_no_field';
       if (!groups[field]) groups[field] = [];
       groups[field].push(word);
-    }
+    });
     return groups;
   }, [filtered]);
 
