@@ -39,6 +39,14 @@ public interface IWordRepository
         int limit,
         CancellationToken ct = default);
     
+    /// <summary>
+    /// Bulk delete all words for a user in a specific field using ExecuteDeleteAsync.
+    /// ✅ PERFORMANCE: Direct SQL DELETE - no memory overhead, no change tracking
+    /// ✅ IDEAL FOR: Large datasets (1000+ records)
+    /// Returns the number of deleted records.
+    /// </summary>
+    Task<int> BulkDeleteByFieldAsync(UserId ownerId, string field, CancellationToken ct = default);
+    
     void Add(Word word);
     void Update(Word word);
     void Delete(Word word);

@@ -33,35 +33,25 @@ public sealed class BulkDeleteWordsByFieldCommandHandler : IRequestHandler<BulkD
         var userId = _currentUserService.GetUserId();
         var field = request.Field == "_no_field" ? "" : request.Field.Trim();
 
-        // Get all words from this field for the user
-        var wordsToDelete = await _wordRepository.GetByOwnerAndFieldAsync(userId, field, cancellationToken);
+        // ✅ PERFORMANCE FIX: Bulk delete directly in database using ExecuteDeleteAsync
+        // - No memory pressure on large datasets (3400+ words)
+        // - No change tracking overhead
+        // - Single SQL DELETE statement instead of 3400 individual operations
+        var deletedCount = await _wordRepository.BulkDeleteByFieldAsync(userId, field, cancellationToken);
 
-        if (wordsToDelete.Count == 0)
+        if (deletedCount == 0)
             throw new NotFoundException($"No words found for field: {field}");
 
-        // Verify ownership (security check)
-        if (wordsToDelete.Any(w => w.OwnerId != userId))
-            throw new ForbiddenException("You can only delete your own words.");
-
-        // Delete all words
-        foreach (var word in wordsToDelete)
-        {
-            _wordRepository.Delete(word);
-        }
-
-        // Save changes
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        // Dispatch domain event
+        // Dispatch domain event with actual deleted count
         await _publisher.Publish(new DomainEventNotification<WordsDeletedFromFieldEvent>(
-            new WordsDeletedFromFieldEvent(userId, request.Field, wordsToDelete.Count)), cancellationToken);
+            new WordsDeletedFromFieldEvent(userId, request.Field, deletedCount)), cancellationToken);
 
-        var message = $"{wordsToDelete.Count} kelime başarıyla silindi";
+        var message = $"{deletedCount} kelime başarıyla silindi";
 
         return new BulkDeleteWordsByFieldResponse(
             true,
             request.Field,
-            wordsToDelete.Count,
+            deletedCount,
             message);
     }
 }

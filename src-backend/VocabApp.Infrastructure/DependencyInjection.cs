@@ -78,7 +78,8 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<AppDbContext>((sp, options) =>
-            options.UseSqlServer(connectionString)
+            options.UseSqlServer(connectionString,
+                sqlOptions => sqlOptions.CommandTimeout(300)) // ✅ 5 min timeout for bulk operations
                 .AddInterceptors(sp.GetRequiredService<DomainEventDispatcherInterceptor>()));
 
         services.AddMemoryCache();

@@ -154,4 +154,18 @@ public sealed class WordRepository : IWordRepository
     {
         _dbContext.Words.Remove(word);
     }
+
+    public async Task<int> BulkDeleteByFieldAsync(UserId ownerId, string field, CancellationToken ct = default)
+    {
+        var normalizedField = field.Trim();
+        
+        // ✅ PERFORMANCE FIX: ExecuteDeleteAsync for bulk operations
+        // - No memory overhead: doesn't load records into memory
+        // - No change tracking: single SQL DELETE statement
+        // - Ideal for large datasets (3400+ words)
+        return await _dbContext.Words
+            .Where(word => word.OwnerId == ownerId && 
+                   (string.IsNullOrEmpty(normalizedField) ? string.IsNullOrEmpty(word.Field) : word.Field == normalizedField))
+            .ExecuteDeleteAsync(ct);
+    }
 }
