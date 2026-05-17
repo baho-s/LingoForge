@@ -11,14 +11,10 @@ client.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // Content-Type header'ını sadece body varsa ve DELETE değilse ekle
-  // DELETE request'inde body yoksa Content-Type kaldır (iOS Safari uyumluluğu)
-  if (config.method !== 'delete' || config.data) {
-    if (!config.headers['Content-Type']) {
-      config.headers['Content-Type'] = 'application/json';
-    }
-  } else if (config.method === 'delete') {
-    delete config.headers['Content-Type'];
+  // iOS Safari uyumluluğu: her request'te Content-Type ekle
+  // DELETE request'lerinde body olmasa da Content-Type gerekli (iOS pre-flight fix)
+  if (!config.headers['Content-Type']) {
+    config.headers['Content-Type'] = 'application/json';
   }
   
   return config;
