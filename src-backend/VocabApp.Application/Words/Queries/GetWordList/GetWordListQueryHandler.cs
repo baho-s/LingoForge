@@ -5,7 +5,7 @@ using VocabApp.Domain.Repositories;
 
 namespace VocabApp.Application.Words.Queries.GetWordList;
 
-public sealed class GetWordListQueryHandler : IRequestHandler<GetWordListQuery, IReadOnlyList<WordDto>>
+public sealed class GetWordListQueryHandler : IRequestHandler<GetWordListQuery, GetWordListResponse>
 {
     private readonly IWordRepository _wordRepository;
     private readonly ICurrentUserService _currentUser;
@@ -16,10 +16,17 @@ public sealed class GetWordListQueryHandler : IRequestHandler<GetWordListQuery, 
         _currentUser = currentUser;
     }
 
-    public async Task<IReadOnlyList<WordDto>> Handle(GetWordListQuery request, CancellationToken cancellationToken)
+    public async Task<GetWordListResponse> Handle(GetWordListQuery request, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetUserId();
+        
+        // Execute sequentially: EF Core DbContext is not thread-safe for concurrent operations
+        // Even with Task.WhenAll, same DbContext instance causes concurrency issues
         var words = await _wordRepository.GetByOwnerPaginatedAsync(userId, request.Skip, request.Take, cancellationToken);
-        return words.Select(WordDto.FromEntity).ToList();
+        var totalCount = await _wordRepository.GetTotalCountByOwnerAsync(userId, cancellationToken);
+        
+        var wordDtos = words.Select(WordDto.FromEntity).ToList();
+        
+        return new GetWordListResponse(wordDtos, totalCount);
     }
 }

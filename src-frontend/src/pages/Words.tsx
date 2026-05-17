@@ -16,6 +16,7 @@ type FilterKey = 'all' | 'due' | 'notDue';
 export default function Words() {
   const { t } = useTranslation();
   const [words, setWords] = useState<WordDto[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -49,9 +50,6 @@ export default function Words() {
   const [displayedCountByField, setDisplayedCountByField] = useState<Map<string, number>>(
     new Map()
   );
-  const [loadedCountByField, setLoadedCountByField] = useState<Map<string, number>>(
-    new Map()
-  );
   const [loadingMoreByField, setLoadingMoreByField] = useState<Map<string, boolean>>(
     new Map()
   );
@@ -63,26 +61,23 @@ export default function Words() {
       const { data } = await wordsApi.getAll(skip, take);
       if (skip === 0) {
         // Initial load
-        setWords(data);
-        // Initialize loadedCountByField for each field
-        const loaded = new Map<string, number>();
-        data.forEach((word) => {
-          const field = word.field || '_no_field';
-          loaded.set(field, (loaded.get(field) || 0) + 1);
-        });
-        setLoadedCountByField(loaded);
+        setWords(data.words);
+        setTotalCount(data.totalCount);
+        setDisplayedCountByField(new Map()); // Reset pagination state
+        
+
+
+        // Smart fetch: if there are more words and we haven't fetched them all yet
+        if (data.totalCount > take && take < 2000) {
+          const smartTake = Math.min(data.totalCount, 2000);
+          const { data: moreData } = await wordsApi.getAll(0, smartTake);
+          setWords(moreData.words);
+          setTotalCount(moreData.totalCount);
+        }
       } else {
         // Append more data
-        setWords((prev) => [...prev, ...data]);
-        // Update loadedCountByField
-        setLoadedCountByField((prev) => {
-          const newMap = new Map(prev);
-          data.forEach((word) => {
-            const field = word.field || '_no_field';
-            newMap.set(field, (newMap.get(field) || 0) + 1);
-          });
-          return newMap;
-        });
+        setWords((prev) => [...prev, ...data.words]);
+        setTotalCount(data.totalCount);
       }
     } catch {
       setError(t('common.error'));
@@ -92,7 +87,34 @@ export default function Words() {
   };
 
   useEffect(() => {
-    fetchWords(0, 100);
+    const initialFetch = async () => {
+      try {
+        // First: fetch initial batch to get totalCount
+        const { data: initialData } = await wordsApi.getAll(0, 100);
+        setWords(initialData.words);
+        setTotalCount(initialData.totalCount);
+        
+        // Initialize pagination state
+        setDisplayedCountByField(new Map());
+
+        // Second: if there are more words, fetch remaining (smart limit: max 2000)
+        if (initialData.totalCount > 100) {
+          const take = Math.min(initialData.totalCount, 2000);
+          const { data: allData } = await wordsApi.getAll(0, take);
+          setWords(allData.words);
+          setTotalCount(allData.totalCount);
+          
+          // Reset pagination state
+          setDisplayedCountByField(new Map());
+        }
+      } catch {
+        setError(t('common.error'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialFetch();
   }, []);
 
   const now = new Date();
@@ -149,10 +171,20 @@ export default function Words() {
   const handleLoadMore = async (field: string) => {
     const currentDisplayed = displayedCountByField.get(field) || ITEMS_PER_LOAD;
     const nextDisplayed = currentDisplayed + ITEMS_PER_LOAD;
-    const currentLoaded = loadedCountByField.get(field) || 0;
 
-    // If we need more items than what's loaded, fetch from backend
-    if (nextDisplayed > currentLoaded) {
+    // Update displayed count first
+    setDisplayedCountByField((prev) => {
+      const newMap = new Map(prev);
+      newMap.set(field, nextDisplayed);
+      return newMap;
+    });
+
+    // Check if we need to fetch more data from backend
+    const fieldWords = groupedByField.get(field) || [];
+    const totalFieldWords = fieldWords.length;
+
+    // If displayed count exceeds loaded data and we haven't hit smart limit (2000), we might need more data
+    if (nextDisplayed > totalFieldWords && totalCount < 2000) {
       setLoadingMoreByField((prev) => {
         const newMap = new Map(prev);
         newMap.set(field, true);
@@ -160,11 +192,9 @@ export default function Words() {
       });
 
       try {
-        // Calculate skip for this field
-        // We need to fetch the next batch from backend
-        const currentPage = Math.floor(currentLoaded / 100);
-        const skip = currentPage * 100;
-        await fetchWords(skip + 100, 100);
+        // Increase smart fetch limit
+        const { data } = await wordsApi.getAll(0, Math.min(totalCount + 500, 2000));
+        setWords(data.words);
       } catch {
         addToast(t('common.error'), 'error');
       } finally {
@@ -175,13 +205,6 @@ export default function Words() {
         });
       }
     }
-
-    // Update displayed count
-    setDisplayedCountByField((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(field, nextDisplayed);
-      return newMap;
-    });
   };
 
   const handleAdd = async () => {
@@ -229,6 +252,7 @@ export default function Words() {
     try {
       await wordsApi.delete(id);
       setWords((prev) => prev.filter((w) => w.id !== id));
+      setTotalCount((prev) => Math.max(0, prev - 1));
       addToast(t('words.deleteWordSuccess'), 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -244,17 +268,14 @@ export default function Words() {
         const wordField = w.field || '_no_field';
         return wordField !== field;
       }));
+      setTotalCount((prev) => Math.max(0, prev - data.deletedCount));
       // Reset pagination for this field
       setDisplayedCountByField((prev) => {
         const newMap = new Map(prev);
         newMap.delete(field);
         return newMap;
       });
-      setLoadedCountByField((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(field);
-        return newMap;
-      });
+
       addToast(`${data.deletedCount} kelime başarıyla silindi.`, 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -275,7 +296,7 @@ export default function Words() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">{t('words.myWords')}</h2>
-          <p className="text-sm text-gray-500 mt-1">{words.length} kelime toplam, {dueCount} tekrar için hazır</p>
+          <p className="text-sm text-gray-500 mt-1">{totalCount} kelime toplam, {dueCount} tekrar için hazır</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -457,7 +478,7 @@ export default function Words() {
                     ) : (
                       <>
                         <BookOpen size={16} />
-                        Devamını Görüntüle ({(displayedCountByField.get(field) || ITEMS_PER_LOAD)} / {fieldWords.length})
+                        Devamını Görüntüle ({(displayedCountByField.get(field) || ITEMS_PER_LOAD)} / {totalCount})
                       </>
                     )}
                   </button>

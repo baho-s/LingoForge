@@ -37,6 +37,13 @@ public sealed class WordRepository : IWordRepository
             .ToListAsync(ct);
     }
 
+    public async Task<int> GetTotalCountByOwnerAsync(UserId ownerId, CancellationToken ct = default)
+    {
+        return await _dbContext.Words
+            .Where(word => word.OwnerId == ownerId)
+            .CountAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Word>> GetByOwnerAndFieldAsync(UserId ownerId, string field, CancellationToken ct = default)
     {
         var normalizedField = field.Trim();

@@ -26,7 +26,7 @@ public sealed class WordsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<WordDto>>> GetList(
+    public async Task<ActionResult<GetWordListResponse>> GetList(
         [FromQuery] int skip = 0,
         [FromQuery] int take = 100,
         CancellationToken cancellationToken = default)

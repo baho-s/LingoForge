@@ -17,6 +17,11 @@ export interface WordDto {
   createdAt: string;
 }
 
+export interface GetWordListResponse {
+  words: WordDto[];
+  totalCount: number;
+}
+
 export interface AddWordPayload {
   original: string;
   translation: string;
