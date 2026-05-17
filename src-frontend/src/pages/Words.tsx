@@ -47,12 +47,8 @@ export default function Words() {
   const [showFieldImport, setShowFieldImport] = useState(false);
 
   // Pagination per field
-  const [displayedCountByField, setDisplayedCountByField] = useState<Map<string, number>>(
-    new Map()
-  );
-  const [loadingMoreByField, setLoadingMoreByField] = useState<Map<string, boolean>>(
-    new Map()
-  );
+  const [displayedCountByField, setDisplayedCountByField] = useState<Record<string, number>>({});
+  const [loadingMoreByField, setLoadingMoreByField] = useState<Record<string, boolean>>({});
 
   const { addToast } = useToast();
 
@@ -63,7 +59,7 @@ export default function Words() {
         // Initial load
         setWords(data.words);
         setTotalCount(data.totalCount);
-        setDisplayedCountByField(new Map()); // Reset pagination state
+        setDisplayedCountByField({}); // Reset pagination state
         
 
 
@@ -95,7 +91,7 @@ export default function Words() {
         setTotalCount(initialData.totalCount);
         
         // Initialize pagination state
-        setDisplayedCountByField(new Map());
+        setDisplayedCountByField({});
 
         // Second: if there are more words, fetch remaining (smart limit: max 2000)
         if (initialData.totalCount > 100) {
@@ -105,7 +101,7 @@ export default function Words() {
           setTotalCount(allData.totalCount);
           
           // Reset pagination state
-          setDisplayedCountByField(new Map());
+          setDisplayedCountByField({});
         }
       } catch {
         setError(t('common.error'));
@@ -156,40 +152,37 @@ export default function Words() {
   const ITEMS_PER_LOAD = 3;
 
   const groupedByField = useMemo(() => {
-    const groups = new Map<string, WordDto[]>();
-    groups.set('_no_field', []);
+    const groups: Record<string, WordDto[]> = { '_no_field': [] };
     
     filtered.forEach((word) => {
       const field = word.field || '_no_field';
-      if (!groups.has(field)) groups.set(field, []);
-      groups.get(field)!.push(word);
+      if (!groups[field]) groups[field] = [];
+      groups[field].push(word);
     });
 
     return groups;
   }, [filtered]);
 
   const handleLoadMore = async (field: string) => {
-    const currentDisplayed = displayedCountByField.get(field) || ITEMS_PER_LOAD;
+    const currentDisplayed = displayedCountByField[field] || ITEMS_PER_LOAD;
     const nextDisplayed = currentDisplayed + ITEMS_PER_LOAD;
 
     // Update displayed count first
-    setDisplayedCountByField((prev) => {
-      const newMap = new Map(prev);
-      newMap.set(field, nextDisplayed);
-      return newMap;
-    });
+    setDisplayedCountByField((prev) => ({
+      ...prev,
+      [field]: nextDisplayed,
+    }));
 
     // Check if we need to fetch more data from backend
-    const fieldWords = groupedByField.get(field) || [];
+    const fieldWords = groupedByField[field] || [];
     const totalFieldWords = fieldWords.length;
 
     // If displayed count exceeds loaded data and we haven't hit smart limit (2000), we might need more data
     if (nextDisplayed > totalFieldWords && totalCount < 2000) {
-      setLoadingMoreByField((prev) => {
-        const newMap = new Map(prev);
-        newMap.set(field, true);
-        return newMap;
-      });
+      setLoadingMoreByField((prev) => ({
+        ...prev,
+        [field]: true,
+      }));
 
       try {
         // Increase smart fetch limit
@@ -198,11 +191,10 @@ export default function Words() {
       } catch {
         addToast(t('common.error'), 'error');
       } finally {
-        setLoadingMoreByField((prev) => {
-          const newMap = new Map(prev);
-          newMap.set(field, false);
-          return newMap;
-        });
+        setLoadingMoreByField((prev) => ({
+          ...prev,
+          [field]: false,
+        }));
       }
     }
   };
@@ -271,9 +263,9 @@ export default function Words() {
       setTotalCount((prev) => Math.max(0, prev - data.deletedCount));
       // Reset pagination for this field
       setDisplayedCountByField((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(field);
-        return newMap;
+        const newObj = { ...prev };
+        delete newObj[field];
+        return newObj;
       });
 
       addToast(`${data.deletedCount} kelime başarıyla silindi.`, 'success');
@@ -389,7 +381,7 @@ export default function Words() {
         </div>
       ) : (
         <div className="space-y-8">
-          {Array.from(groupedByField.entries()).map(([field, fieldWords]) => (
+          {Object.entries(groupedByField).map(([field, fieldWords]) => (
             <div key={field}>
               {/* Field Header with Bulk Delete */}
               {field !== '_no_field' && (
@@ -426,8 +418,8 @@ export default function Words() {
               {/* Words Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {fieldWords
-                  .slice(0, displayedCountByField.get(field) || ITEMS_PER_LOAD)
-                  .map((word) => {
+                  .slice(0, displayedCountByField[field] || ITEMS_PER_LOAD)
+                  .map((word: WordDto) => {
                     const isDue = new Date(word.nextReviewAt) <= now;
                     return (
                       <div
@@ -463,14 +455,14 @@ export default function Words() {
               </div>
 
               {/* Load More Button */}
-              {(displayedCountByField.get(field) || ITEMS_PER_LOAD) < fieldWords.length && (
+              {(displayedCountByField[field] || ITEMS_PER_LOAD) < fieldWords.length && (
                 <div className="mt-6 flex justify-center">
                   <button
                     onClick={() => handleLoadMore(field)}
-                    disabled={loadingMoreByField.get(field) || false}
+                    disabled={loadingMoreByField[field] || false}
                     className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {loadingMoreByField.get(field) ? (
+                  {loadingMoreByField[field] ? (
                       <>
                         <Loader2 size={16} className="animate-spin" />
                         Yükleniyor...
@@ -478,7 +470,7 @@ export default function Words() {
                     ) : (
                       <>
                         <BookOpen size={16} />
-                        Devamını Görüntüle ({(displayedCountByField.get(field) || ITEMS_PER_LOAD)} / {totalCount})
+                          Devamını Görüntüle ({(displayedCountByField[field] || ITEMS_PER_LOAD)} / {totalCount})
                       </>
                     )}
                   </button>
