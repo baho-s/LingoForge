@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Component, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search, Plus, Sparkles, X, Loader2, ArrowUpDown, AlertTriangle, BookOpen, Trash2 } from 'lucide-react';
 import { wordsApi } from '../api/endpoints';
@@ -13,7 +13,47 @@ type SortKey = 'createdAt' | 'original' | 'nextReviewAt';
 type SortDir = 'asc' | 'desc';
 type FilterKey = 'all' | 'due' | 'notDue';
 
-export default function Words() {
+// ─── Error Boundary ────────────────────────────────────────────────────────────
+// Production React shows a blank white screen for any uncaught render error.
+// This catches it and shows a human-readable message instead.
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; message: string }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: '' };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, message: error?.message ?? 'Bilinmeyen hata' };
+  }
+
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    console.error('[Words ErrorBoundary]', error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-5xl mx-auto py-16 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+            <AlertTriangle size={28} className="text-red-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900">Bir şeyler ters gitti</h2>
+          <p className="text-sm text-gray-500">{this.state.message}</p>
+          <button
+            onClick={() => this.setState({ hasError: false, message: '' })}
+            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            Tekrar Dene
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
+function WordsInner() {
   const { t } = useTranslation();
   const [words, setWords] = useState<WordDto[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -47,34 +87,31 @@ export default function Words() {
   const [showFieldImport, setShowFieldImport] = useState(false);
 
   // Pagination per field
+  const ITEMS_PER_LOAD = 3;
   const [displayedCountByField, setDisplayedCountByField] = useState<Record<string, number>>({});
   const [loadingMoreByField, setLoadingMoreByField] = useState<Record<string, boolean>>({});
 
   const { addToast } = useToast();
 
-  const fetchWords = async (skip: number = 0, take: number = 100) => {
+  // ─── Single, clean fetch function (no duplicate logic) ──────────────────────
+  const fetchWords = async () => {
     try {
-      if (skip === 0) {
-        // Smart fetch when starting fresh
-        const { data } = await wordsApi.getAll(0, 100);
-        setWords(data.words);
-        setTotalCount(data.totalCount);
-        setDisplayedCountByField({}); // Reset pagination
-        
-        // If there are more words, fetch all up to smart limit (2000)
-        if (data.totalCount > 100) {
-          const smartTake = Math.min(data.totalCount, 2000);
-          const { data: allData } = await wordsApi.getAll(0, smartTake);
-          setWords(allData.words);
-          setTotalCount(allData.totalCount);
-        }
-      } else {
-        // Pagination: append more data
-        const { data } = await wordsApi.getAll(skip, take);
-        setWords((prev) => [...prev, ...data.words]);
-        setTotalCount(data.totalCount);
+      // Step 1: fast first paint with initial batch
+      const { data: initial } = await wordsApi.getAll(0, 100);
+      setWords(initial.words);
+      setTotalCount(initial.totalCount);
+      setDisplayedCountByField({});
+
+      // Step 2: if there are more, fetch the rest (capped at 2 000)
+      if (initial.totalCount > 100) {
+        const take = Math.min(initial.totalCount, 2000);
+        const { data: full } = await wordsApi.getAll(0, take);
+        setWords(full.words);
+        setTotalCount(full.totalCount);
+        setDisplayedCountByField({});
       }
-    } catch {
+    } catch (err) {
+      console.error('[fetchWords]', err);
       setError(t('common.error'));
     } finally {
       setLoading(false);
@@ -82,42 +119,15 @@ export default function Words() {
   };
 
   useEffect(() => {
-    const initialFetch = async () => {
-      try {
-        // First: fetch initial batch to get totalCount
-        const { data: initialData } = await wordsApi.getAll(0, 100);
-        setWords(initialData.words);
-        setTotalCount(initialData.totalCount);
-        
-        // Initialize pagination state
-        setDisplayedCountByField({});
-
-        // Second: if there are more words, fetch remaining (smart limit: max 2000)
-        if (initialData.totalCount > 100) {
-          const take = Math.min(initialData.totalCount, 2000);
-          const { data: allData } = await wordsApi.getAll(0, take);
-          setWords(allData.words);
-          setTotalCount(allData.totalCount);
-          
-          // Reset pagination state
-          setDisplayedCountByField({});
-        }
-      } catch {
-        setError(t('common.error'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initialFetch();
+    fetchWords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const now = new Date();
-
+  // ─── Derived data ────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
+    const currentNow = new Date(); // fresh per computation
     let result = [...words];
 
-    // Search
     const q = search.toLowerCase();
     if (q) {
       result = result.filter(
@@ -127,14 +137,12 @@ export default function Words() {
       );
     }
 
-    // Filter
     if (filter === 'due') {
-      result = result.filter((w) => new Date(w.nextReviewAt) <= now);
+      result = result.filter((w) => new Date(w.nextReviewAt) <= currentNow);
     } else if (filter === 'notDue') {
-      result = result.filter((w) => new Date(w.nextReviewAt) > now);
+      result = result.filter((w) => new Date(w.nextReviewAt) > currentNow);
     }
 
-    // Sort
     result.sort((a, b) => {
       let cmp = 0;
       if (sortKey === 'createdAt') cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -146,52 +154,39 @@ export default function Words() {
     return result;
   }, [words, search, sortKey, sortDir, filter]);
 
-  const dueCount = words.filter((w) => new Date(w.nextReviewAt) <= now).length;
-
-  const ITEMS_PER_LOAD = 3;
+  const dueCount = useMemo(
+    () => words.filter((w) => new Date(w.nextReviewAt) <= new Date()).length,
+    [words],
+  );
 
   const groupedByField = useMemo(() => {
-    const groups: Record<string, WordDto[]> = { '_no_field': [] };
-    
-    filtered.forEach((word) => {
+    const groups: Record<string, WordDto[]> = { _no_field: [] };
+    for (const word of filtered) {
       const field = word.field || '_no_field';
       if (!groups[field]) groups[field] = [];
       groups[field].push(word);
-    });
-
+    }
     return groups;
   }, [filtered]);
 
+  // ─── Handlers ────────────────────────────────────────────────────────────────
   const handleLoadMore = async (field: string) => {
-    const currentDisplayed = displayedCountByField[field] || ITEMS_PER_LOAD;
+    const currentDisplayed = displayedCountByField[field] ?? ITEMS_PER_LOAD;
     const nextDisplayed = currentDisplayed + ITEMS_PER_LOAD;
 
-    // Update displayed count first
-    setDisplayedCountByField((prev) => ({
-      ...prev,
-      [field]: nextDisplayed,
-    }));
+    setDisplayedCountByField((prev) => ({ ...prev, [field]: nextDisplayed }));
 
-    // Check if we have enough data loaded globally
-    // If our current words count is less than smart limit, fetch more
+    // Only hit the API if we haven't loaded everything yet
     if (words.length < totalCount && words.length < 2000) {
-      setLoadingMoreByField((prev) => ({
-        ...prev,
-        [field]: true,
-      }));
-
+      setLoadingMoreByField((prev) => ({ ...prev, [field]: true }));
       try {
-        // Fetch more data up to smart limit (2000)
         const smartTake = Math.min(totalCount, 2000);
         const { data } = await wordsApi.getAll(0, smartTake);
         setWords(data.words);
       } catch {
         addToast(t('common.error'), 'error');
       } finally {
-        setLoadingMoreByField((prev) => ({
-          ...prev,
-          [field]: false,
-        }));
+        setLoadingMoreByField((prev) => ({ ...prev, [field]: false }));
       }
     }
   };
@@ -209,7 +204,7 @@ export default function Words() {
       setAddOriginal('');
       setAddTranslation('');
       setAddAiSentence(true);
-      await fetchWords(0, 100);
+      await fetchWords();
       addToast(t('words.addWordSuccess'), 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -222,7 +217,7 @@ export default function Words() {
     setBulkLoading(true);
     try {
       const { data } = await wordsApi.bulkGenerate();
-      await fetchWords(0, 100);
+      await fetchWords();
       addToast(`${data.generated} cümle oluşturuldu. ${data.skipped} atlandı.`, 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -232,7 +227,7 @@ export default function Words() {
   };
 
   const handleFieldImportSuccess = async (fieldName: string, importedCount: number) => {
-    await fetchWords(0, 100);
+    await fetchWords();
     addToast(`${importedCount} kelime "${fieldName}" alanından eklendi!`, 'success');
   };
 
@@ -253,18 +248,13 @@ export default function Words() {
     setDeletingField(true);
     try {
       const { data } = await wordsApi.bulkDeleteByField(field);
-      setWords((prev) => prev.filter((w) => {
-        const wordField = w.field || '_no_field';
-        return wordField !== field;
-      }));
+      setWords((prev) => prev.filter((w) => (w.field || '_no_field') !== field));
       setTotalCount((prev) => Math.max(0, prev - data.deletedCount));
-      // Reset pagination for this field
       setDisplayedCountByField((prev) => {
-        const newObj = { ...prev };
-        delete newObj[field];
-        return newObj;
+        const next = { ...prev };
+        delete next[field];
+        return next;
       });
-
       addToast(`${data.deletedCount} kelime başarıyla silindi.`, 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -279,15 +269,18 @@ export default function Words() {
     else { setSortKey(key); setSortDir('asc'); }
   };
 
+  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">{t('words.myWords')}</h2>
-          <p className="text-sm text-gray-500 mt-1">{totalCount} kelime toplam, {dueCount} tekrar için hazır</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {totalCount} kelime toplam, {dueCount} tekrar için hazır
+          </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <button
             onClick={() => setShowFieldImport(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors"
@@ -349,7 +342,7 @@ export default function Words() {
             <ArrowUpDown size={14} />
             <select
               value={sortKey}
-              onChange={(e) => { setSortKey(e.target.value as SortKey); }}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
               onClick={(e) => e.stopPropagation()}
               className="bg-transparent focus:outline-none cursor-pointer"
             >
@@ -378,46 +371,36 @@ export default function Words() {
         </div>
       ) : (
         <div className="space-y-8">
-          {Object.entries(groupedByField).map(([field, fieldWords]) => (
-            <div key={field}>
-              {/* Field Header with Bulk Delete */}
-              {field !== '_no_field' && (
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{field}</h3>
-                    <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
-                  </div>
-                  <button
-                    onClick={() => setDeleteFieldTarget(field)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <Trash2 size={16} />
-                    Tümünü Sil
-                  </button>
-                </div>
-              )}
-              {field === '_no_field' && fieldWords.length > 0 && (
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Sizin Kelimeleriniz</h3>
-                    <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
-                  </div>
-                  <button
-                    onClick={() => setDeleteFieldTarget(field)}
-                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <Trash2 size={16} />
-                    Tümünü Sil
-                  </button>
-                </div>
-              )}
+          {Object.entries(groupedByField).map(([field, fieldWords]) => {
+            // Skip empty groups
+            if (fieldWords.length === 0) return null;
 
-              {/* Words Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {fieldWords
-                  .slice(0, displayedCountByField[field] || ITEMS_PER_LOAD)
-                  .map((word: WordDto) => {
-                    const isDue = new Date(word.nextReviewAt) <= now;
+            const displayedCount = displayedCountByField[field] ?? ITEMS_PER_LOAD;
+            const isLoadingMore = loadingMoreByField[field] ?? false;
+            const hasMore = displayedCount < fieldWords.length;
+            const fieldLabel = field === '_no_field' ? 'Sizin Kelimeleriniz' : field;
+
+            return (
+              <div key={field}>
+                {/* Field Header */}
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{fieldLabel}</h3>
+                    <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
+                  </div>
+                  <button
+                    onClick={() => setDeleteFieldTarget(field)}
+                    className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Trash2 size={16} />
+                    Tümünü Sil
+                  </button>
+                </div>
+
+                {/* Words Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {fieldWords.slice(0, displayedCount).map((word) => {
+                    const isDue = new Date(word.nextReviewAt) <= new Date();
                     return (
                       <div
                         key={word.id}
@@ -440,45 +423,49 @@ export default function Words() {
                         <p className="text-sm text-gray-500 mb-3">{word.translation}</p>
                         {word.aiSentence && (
                           <p className="text-xs text-gray-400 italic bg-gray-50 rounded-lg px-3 py-2">
-                            "{word.aiSentence}"
+                            &ldquo;{word.aiSentence}&rdquo;
                           </p>
                         )}
-                        <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                          <span>Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}</span>
+                        <div className="mt-3 text-xs text-gray-400">
+                          Sonraki Tekrar: {new Date(word.nextReviewAt).toLocaleDateString('tr-TR')}
                         </div>
                       </div>
                     );
                   })}
-              </div>
-
-              {/* Load More Button */}
-              {(displayedCountByField[field] || ITEMS_PER_LOAD) < fieldWords.length && (
-                <div className="mt-6 flex justify-center">
-                  <button
-                    onClick={() => handleLoadMore(field)}
-                    disabled={loadingMoreByField[field] || false}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                  {loadingMoreByField[field] ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" />
-                        Yükleniyor...
-                      </>
-                    ) : (
-                      <>
-                        <BookOpen size={16} />
-                          Devamını Görüntüle ({(displayedCountByField[field] || ITEMS_PER_LOAD)} / {totalCount})
-                      </>
-                    )}
-                  </button>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Load More — shows per-field count, not total */}
+                {hasMore && (
+                  <div className="mt-6 flex justify-center">
+                    <button
+                      onClick={() => handleLoadMore(field)}
+                      disabled={isLoadingMore}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium text-sm hover:shadow-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoadingMore ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          Yükleniyor...
+                        </>
+                      ) : (
+                        <>
+                          <BookOpen size={16} />
+                          {/* FIX: show fieldWords.length, not totalCount */}
+                          Devamını Görüntüle ({displayedCount} / {fieldWords.length})
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Add Word Modal */}
+      {/* ── Modals ─────────────────────────────────────────────────────────── */}
+
+      {/* Add Word */}
       {showAdd && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setShowAdd(false)} />
@@ -530,7 +517,7 @@ export default function Words() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Word */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setDeleteTarget(null)} />
@@ -542,7 +529,7 @@ export default function Words() {
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Kelime Sil</h3>
                 <p className="text-sm text-gray-500">
-                  "<span className="font-medium text-gray-700">{deleteTarget.original}</span>" kelimesini silmek istediğine emin misin? Bu işlem geri alınamaz.
+                  &ldquo;<span className="font-medium text-gray-700">{deleteTarget.original}</span>&rdquo; kelimesini silmek istediğine emin misin? Bu işlem geri alınamaz.
                 </p>
               </div>
             </div>
@@ -564,7 +551,7 @@ export default function Words() {
         </div>
       )}
 
-      {/* Bulk Delete by Field Modal */}
+      {/* Bulk Delete by Field */}
       {deleteFieldTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/30" onClick={() => setDeleteFieldTarget(null)} />
@@ -578,7 +565,13 @@ export default function Words() {
                   {deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget} Alanındaki Kelimeleri Sil
                 </h3>
                 <p className="text-sm text-gray-500">
-                  "<span className="font-medium text-gray-700">{deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{filtered.filter(w => (w.field || '_no_field') === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
+                  &ldquo;<span className="font-medium text-gray-700">
+                    {deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget}
+                  </span>&rdquo; alanındaki{' '}
+                  <span className="font-medium text-gray-700">
+                    {filtered.filter((w) => (w.field || '_no_field') === deleteFieldTarget).length}
+                  </span>{' '}
+                  kelime silinecektir. Bu işlem geri alınamaz.
                 </p>
               </div>
             </div>
@@ -603,7 +596,7 @@ export default function Words() {
         </div>
       )}
 
-      {/* Bulk loading overlay */}
+      {/* Bulk AI loading overlay */}
       {bulkLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
           <div className="bg-white rounded-2xl shadow-xl p-8 flex flex-col items-center gap-4">
@@ -621,5 +614,14 @@ export default function Words() {
         onError={(msg) => addToast(msg, 'error')}
       />
     </div>
+  );
+}
+
+// ─── Export wrapped in ErrorBoundary ──────────────────────────────────────────
+export default function Words() {
+  return (
+    <ErrorBoundary>
+      <WordsInner />
+    </ErrorBoundary>
   );
 }
