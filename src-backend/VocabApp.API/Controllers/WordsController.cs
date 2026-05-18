@@ -59,6 +59,18 @@ public sealed class WordsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("by-field/{field}")]
+    public async Task<ActionResult<GetWordListResponse>> GetByField(
+        string field,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 100,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new GetWordListQuery(skip, take, field);
+        var result = await _sender.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
     /// <summary>
     /// Bulk delete all words from a specific field
     /// </summary>

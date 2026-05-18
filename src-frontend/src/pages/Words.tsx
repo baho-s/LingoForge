@@ -49,31 +49,56 @@ export default function Words() {
   // Pagination per field
   const [displayedCountByField, setDisplayedCountByField] = useState<Record<string, number>>({});
   const [loadingMoreByField, setLoadingMoreByField] = useState<Record<string, boolean>>({});
+  const [totalCountByField, setTotalCountByField] = useState<Record<string, number>>({});
 
   const { addToast } = useToast();
 
-  const fetchWords = async (skip: number = 0, take: number = 100) => {
+  const fetchWords = async () => {
     try {
-      if (skip === 0) {
-        // Smart fetch when starting fresh
-        const { data } = await wordsApi.getAll(0, 100);
-        setWords(data.words);
-        setTotalCount(data.totalCount);
-        setDisplayedCountByField({}); // Reset pagination
-        
-        // If there are more words, fetch all up to smart limit (2000)
-        if (data.totalCount > 100) {
-          const smartTake = Math.min(data.totalCount, 2000);
-          const { data: allData } = await wordsApi.getAll(0, smartTake);
-          setWords(allData.words);
-          setTotalCount(allData.totalCount);
-        }
-      } else {
-        // Pagination: append more data
-        const { data } = await wordsApi.getAll(skip, take);
-        setWords((prev) => [...prev, ...data.words]);
-        setTotalCount(data.totalCount);
+      // Use global list only to discover fields and total count.
+      const { data: initialData } = await wordsApi.getAll(0, 100);
+      setTotalCount(initialData.totalCount);
+
+      const fieldKeys = Array.from(
+        new Set(
+          initialData.words.map((word) => (word.field && word.field.trim() ? word.field : '_no_field')),
+        ),
+      );
+
+      if (fieldKeys.length === 0) {
+        setWords([]);
+        setDisplayedCountByField({});
+        setTotalCountByField({});
+        return;
       }
+
+      const fieldResults = await Promise.all(
+        fieldKeys.map(async (fieldKey) => {
+          const fieldParam = fieldKey === '_no_field' ? '_no_field' : fieldKey;
+          const { data } = await wordsApi.getByField(fieldParam, 0, ITEMS_PER_LOAD);
+          return { fieldKey, data };
+        }),
+      );
+
+      const merged: WordDto[] = [];
+      const seenIds = new Set<string>();
+      const nextDisplayed: Record<string, number> = {};
+      const nextTotals: Record<string, number> = {};
+
+      fieldResults.forEach(({ fieldKey, data }) => {
+        nextTotals[fieldKey] = data.totalCount;
+        nextDisplayed[fieldKey] = data.words.length;
+        data.words.forEach((word) => {
+          if (!seenIds.has(word.id)) {
+            seenIds.add(word.id);
+            merged.push(word);
+          }
+        });
+      });
+
+      setWords(merged);
+      setDisplayedCountByField(nextDisplayed);
+      setTotalCountByField(nextTotals);
     } catch {
       setError(t('common.error'));
     } finally {
@@ -82,34 +107,7 @@ export default function Words() {
   };
 
   useEffect(() => {
-    const initialFetch = async () => {
-      try {
-        // First: fetch initial batch to get totalCount
-        const { data: initialData } = await wordsApi.getAll(0, 100);
-        setWords(initialData.words);
-        setTotalCount(initialData.totalCount);
-        
-        // Initialize pagination state
-        setDisplayedCountByField({});
-
-        // Second: if there are more words, fetch remaining (smart limit: max 2000)
-        if (initialData.totalCount > 100) {
-          const take = Math.min(initialData.totalCount, 2000);
-          const { data: allData } = await wordsApi.getAll(0, take);
-          setWords(allData.words);
-          setTotalCount(allData.totalCount);
-          
-          // Reset pagination state
-          setDisplayedCountByField({});
-        }
-      } catch {
-        setError(t('common.error'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initialFetch();
+    fetchWords();
   }, []);
 
   const now = new Date();
@@ -172,27 +170,37 @@ export default function Words() {
       [field]: nextDisplayed,
     }));
 
-    // Check if we have enough data loaded globally
-    // If our current words count is less than smart limit, fetch more
-    if (words.length < totalCount && words.length < 2000) {
-      setLoadingMoreByField((prev) => ({
-        ...prev,
-        [field]: true,
-      }));
+    // Fetch more data for this specific field
+    setLoadingMoreByField((prev) => ({
+      ...prev,
+      [field]: true,
+    }));
 
-      try {
-        // Fetch more data up to smart limit (2000)
-        const smartTake = Math.min(totalCount, 2000);
-        const { data } = await wordsApi.getAll(0, smartTake);
-        setWords(data.words);
-      } catch {
-        addToast(t('common.error'), 'error');
-      } finally {
-        setLoadingMoreByField((prev) => ({
+    try {
+      // Fetch next batch for this field
+      const fieldName = field === '_no_field' ? '_no_field' : field;
+      const { data } = await wordsApi.getByField(fieldName, currentDisplayed, ITEMS_PER_LOAD);
+      
+      if (data && data.words) {
+        // Append words for this field
+        setWords((prev) => [...prev, ...data.words]);
+        setTotalCountByField((prev) => ({
           ...prev,
-          [field]: false,
+          [field]: data.totalCount,
         }));
       }
+    } catch {
+      addToast(t('common.error'), 'error');
+      // Reset the displayed count on error
+      setDisplayedCountByField((prev) => ({
+        ...prev,
+        [field]: currentDisplayed,
+      }));
+    } finally {
+      setLoadingMoreByField((prev) => ({
+        ...prev,
+        [field]: false,
+      }));
     }
   };
 
@@ -209,7 +217,7 @@ export default function Words() {
       setAddOriginal('');
       setAddTranslation('');
       setAddAiSentence(true);
-      await fetchWords(0, 100);
+      await fetchWords();
       addToast(t('words.addWordSuccess'), 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -222,7 +230,7 @@ export default function Words() {
     setBulkLoading(true);
     try {
       const { data } = await wordsApi.bulkGenerate();
-      await fetchWords(0, 100);
+      await fetchWords();
       addToast(`${data.generated} cümle oluşturuldu. ${data.skipped} atlandı.`, 'success');
     } catch {
       addToast(t('common.error'), 'error');
@@ -232,7 +240,7 @@ export default function Words() {
   };
 
   const handleFieldImportSuccess = async (fieldName: string, importedCount: number) => {
-    await fetchWords(0, 100);
+    await fetchWords();
     addToast(`${importedCount} kelime "${fieldName}" alanından eklendi!`, 'success');
   };
 
@@ -260,6 +268,11 @@ export default function Words() {
       setTotalCount((prev) => Math.max(0, prev - data.deletedCount));
       // Reset pagination for this field
       setDisplayedCountByField((prev) => {
+        const newObj = { ...prev };
+        delete newObj[field];
+        return newObj;
+      });
+      setTotalCountByField((prev) => {
         const newObj = { ...prev };
         delete newObj[field];
         return newObj;
@@ -385,7 +398,7 @@ export default function Words() {
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{field}</h3>
-                    <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
+                    <p className="text-xs text-gray-500">{totalCountByField[field] ?? fieldWords.length} kelime</p>
                   </div>
                   <button
                     onClick={() => setDeleteFieldTarget(field)}
@@ -400,7 +413,7 @@ export default function Words() {
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">Sizin Kelimeleriniz</h3>
-                    <p className="text-xs text-gray-500">{fieldWords.length} kelime</p>
+                    <p className="text-xs text-gray-500">{totalCountByField[field] ?? fieldWords.length} kelime</p>
                   </div>
                   <button
                     onClick={() => setDeleteFieldTarget(field)}
@@ -452,7 +465,7 @@ export default function Words() {
               </div>
 
               {/* Load More Button */}
-              {(displayedCountByField[field] || ITEMS_PER_LOAD) < fieldWords.length && (
+              {(displayedCountByField[field] || ITEMS_PER_LOAD) < (totalCountByField[field] ?? fieldWords.length) && (
                 <div className="mt-6 flex justify-center">
                   <button
                     onClick={() => handleLoadMore(field)}
@@ -467,7 +480,7 @@ export default function Words() {
                     ) : (
                       <>
                         <BookOpen size={16} />
-                          Devamını Görüntüle ({(displayedCountByField[field] || ITEMS_PER_LOAD)} / {totalCount})
+                          Devamını Görüntüle ({(displayedCountByField[field] || ITEMS_PER_LOAD)} / {(totalCountByField[field] ?? fieldWords.length)})
                       </>
                     )}
                   </button>
@@ -578,7 +591,7 @@ export default function Words() {
                   {deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget} Alanındaki Kelimeleri Sil
                 </h3>
                 <p className="text-sm text-gray-500">
-                  "<span className="font-medium text-gray-700">{deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{filtered.filter(w => (w.field || '_no_field') === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
+                  "<span className="font-medium text-gray-700">{deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{totalCountByField[deleteFieldTarget] ?? filtered.filter(w => (w.field || '_no_field') === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
                 </p>
               </div>
             </div>

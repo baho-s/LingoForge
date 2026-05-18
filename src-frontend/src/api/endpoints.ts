@@ -26,6 +26,8 @@ export const authApi = {
 export const wordsApi = {
   getAll: (skip: number = 0, take: number = 100) =>
     client.get<GetWordListResponse>('/api/words', { params: { skip, take } }),
+  getByField: (field: string, skip: number = 0, take: number = 100) =>
+    client.get<GetWordListResponse>(`/api/words/by-field/${encodeURIComponent(field)}`, { params: { skip, take } }),
   getReviewSessionWords: (limit: number = 8, includeAll: boolean = false) =>
     client.get<WordDto[]>('/api/words/review/session', { params: { limit, include_all: includeAll } }),
   add: (payload: AddWordPayload) => client.post<WordDto>('/api/words', payload),

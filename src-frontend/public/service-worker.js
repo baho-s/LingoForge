@@ -2,7 +2,7 @@
 // Automatically clears old cache versions on app updates
 
 const CACHE_PREFIX = 'vocapp';
-const CACHE_VERSION = 'v2'; // Increment this when deploying new versions
+const CACHE_VERSION = 'v1.1'; // Increment this when deploying new versions
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing...');

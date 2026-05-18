@@ -20,13 +20,22 @@ public sealed class GetWordListQueryHandler : IRequestHandler<GetWordListQuery, 
     {
         var userId = _currentUser.GetUserId();
         
-        // Execute sequentially: EF Core DbContext is not thread-safe for concurrent operations
-        // Even with Task.WhenAll, same DbContext instance causes concurrency issues
-        var words = await _wordRepository.GetByOwnerPaginatedAsync(userId, request.Skip, request.Take, cancellationToken);
-        var totalCount = await _wordRepository.GetTotalCountByOwnerAsync(userId, cancellationToken);
+        if (request.Field != null)
+        {
+            // Get paginated words for specific field
+            var normalizedField = request.Field == "_no_field" ? "" : request.Field.Trim();
+            var words = await _wordRepository.GetByFieldPaginatedAsync(userId, normalizedField, request.Skip, request.Take, cancellationToken);
+            var totalCount = await _wordRepository.GetTotalCountByFieldAsync(userId, normalizedField, cancellationToken);
+            
+            var wordDtos = words.Select(WordDto.FromEntity).ToList();
+            return new GetWordListResponse(wordDtos, totalCount);
+        }
         
-        var wordDtos = words.Select(WordDto.FromEntity).ToList();
+        // Get all words (original behavior)
+        var allWords = await _wordRepository.GetByOwnerPaginatedAsync(userId, request.Skip, request.Take, cancellationToken);
+        var allTotalCount = await _wordRepository.GetTotalCountByOwnerAsync(userId, cancellationToken);
         
-        return new GetWordListResponse(wordDtos, totalCount);
+        var allWordDtos = allWords.Select(WordDto.FromEntity).ToList();
+        return new GetWordListResponse(allWordDtos, allTotalCount);
     }
 }

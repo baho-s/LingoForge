@@ -53,6 +53,25 @@ public sealed class WordRepository : IWordRepository
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Word>> GetByFieldPaginatedAsync(UserId ownerId, string field, int skip, int take, CancellationToken ct = default)
+    {
+        var normalizedField = field.Trim();
+        return await _dbContext.Words
+            .Where(word => word.OwnerId == ownerId && (string.IsNullOrEmpty(normalizedField) ? string.IsNullOrEmpty(word.Field) : word.Field == normalizedField))
+            .OrderByDescending(word => word.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> GetTotalCountByFieldAsync(UserId ownerId, string field, CancellationToken ct = default)
+    {
+        var normalizedField = field.Trim();
+        return await _dbContext.Words
+            .Where(word => word.OwnerId == ownerId && (string.IsNullOrEmpty(normalizedField) ? string.IsNullOrEmpty(word.Field) : word.Field == normalizedField))
+            .CountAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Word>> GetWordsWithoutSentenceAsync(UserId ownerId, CancellationToken ct = default)
     {
         return await _dbContext.Words
