@@ -184,14 +184,45 @@ public sealed class WordRepository : IWordRepository
     public async Task<int> BulkDeleteByFieldAsync(UserId ownerId, string field, CancellationToken ct = default)
     {
         var normalizedField = field.Trim();
-        
-        // ✅ PERFORMANCE FIX: ExecuteDeleteAsync for bulk operations
-        // - No memory overhead: doesn't load records into memory
-        // - No change tracking: single SQL DELETE statement
-        // - Ideal for large datasets (3400+ words)
-        return await _dbContext.Words
-            .Where(word => word.OwnerId == ownerId && 
-                   (string.IsNullOrEmpty(normalizedField) ? string.IsNullOrEmpty(word.Field) : word.Field == normalizedField))
-            .ExecuteDeleteAsync(ct);
+        var totalDeleted = 0;
+        const int batchSize = 1000;
+
+        // ✅ Batch delete to avoid long locks/timeouts on large datasets
+        while (true)
+        {
+            var wordIds = await _dbContext.Words
+                .Where(word => word.OwnerId == ownerId &&
+                       (string.IsNullOrEmpty(normalizedField) ? string.IsNullOrEmpty(word.Field) : word.Field == normalizedField))
+                .OrderBy(word => word.Id)
+                .Select(word => word.Id)
+                .Take(batchSize)
+                .ToListAsync(ct);
+
+            if (wordIds.Count == 0)
+            {
+                break;
+            }
+
+            await _dbContext.UserVocabularyProgresses
+                .Where(progress => wordIds.Contains(progress.WordId))
+                .ExecuteDeleteAsync(ct);
+
+            await _dbContext.ReviewHistories
+                .Where(history => wordIds.Contains(history.WordId))
+                .ExecuteDeleteAsync(ct);
+
+            var deleted = await _dbContext.Words
+                .Where(word => wordIds.Contains(word.Id))
+                .ExecuteDeleteAsync(ct);
+
+            if (deleted == 0)
+            {
+                break;
+            }
+
+            totalDeleted += deleted;
+        }
+
+        return totalDeleted;
     }
 }

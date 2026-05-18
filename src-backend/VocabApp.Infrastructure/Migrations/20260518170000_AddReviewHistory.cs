@@ -1,11 +1,14 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using VocabApp.Infrastructure.Persistence;
 
 #nullable disable
 
 namespace VocabApp.Infrastructure.Migrations
 {
     /// <inheritdoc />
+    [DbContext(typeof(AppDbContext))]
     [Migration("20260518170000_AddReviewHistory")]
     public partial class AddReviewHistory : Migration
     {
