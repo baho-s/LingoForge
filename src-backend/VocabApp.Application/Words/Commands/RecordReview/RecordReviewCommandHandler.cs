@@ -2,6 +2,7 @@ using MediatR;
 using VocabApp.Application.Common.Exceptions;
 using VocabApp.Application.Common.Interfaces;
 using VocabApp.Application.Words.Dtos;
+using VocabApp.Domain.Entities;
 using VocabApp.Domain.Enums;
 using VocabApp.Domain.Repositories;
 using VocabApp.Domain.ValueObjects;
@@ -12,17 +13,20 @@ public sealed class RecordReviewCommandHandler : IRequestHandler<RecordReviewCom
 {
     private readonly IWordRepository _wordRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IReviewHistoryRepository _reviewHistoryRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
 
     public RecordReviewCommandHandler(
         IWordRepository wordRepository,
         IUserRepository userRepository,
+        IReviewHistoryRepository reviewHistoryRepository,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser)
     {
         _wordRepository = wordRepository;
         _userRepository = userRepository;
+        _reviewHistoryRepository = reviewHistoryRepository;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
     }
@@ -50,6 +54,26 @@ public sealed class RecordReviewCommandHandler : IRequestHandler<RecordReviewCom
 
         word.RecordReview(request.Outcome);
         var reviewCount = user.RecordReview(DateTime.UtcNow);
+
+        var isCorrect = request.Outcome != ReviewOutcome.Again;
+        var qScore = request.Outcome switch
+        {
+            ReviewOutcome.Again => 0,
+            ReviewOutcome.Hard => 3,
+            ReviewOutcome.Good => 4,
+            ReviewOutcome.Easy => 5,
+            _ => (int?)null,
+        };
+        var reviewHistory = ReviewHistory.Create(
+            userId,
+            word.Id,
+            isCorrect,
+            request.Outcome,
+            qScore,
+            null,
+            word.Review,
+            ReviewSource.ReviewSession);
+        _reviewHistoryRepository.Add(reviewHistory);
 
         if (reviewCount == 100)
         {

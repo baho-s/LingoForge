@@ -2,6 +2,8 @@ using MediatR;
 using VocabApp.Application.Common.Exceptions;
 using VocabApp.Application.Common.Interfaces;
 using VocabApp.Application.Practice.Dtos;
+using VocabApp.Domain.Entities;
+using VocabApp.Domain.Enums;
 using VocabApp.Domain.Repositories;
 using VocabApp.Domain.ValueObjects;
 
@@ -12,6 +14,7 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
     private readonly IWordRepository _wordRepository;
     private readonly IUserRepository _userRepository;
     private readonly IUserVocabularyProgressRepository _progressRepository;
+    private readonly IReviewHistoryRepository _reviewHistoryRepository;
     private readonly ICurrentUserService _currentUser;
     private readonly IAiSentenceService _aiSentenceService;
     private readonly IUnitOfWork _unitOfWork;
@@ -20,6 +23,7 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
         IWordRepository wordRepository,
         IUserRepository userRepository,
         IUserVocabularyProgressRepository progressRepository,
+        IReviewHistoryRepository reviewHistoryRepository,
         ICurrentUserService currentUser,
         IAiSentenceService aiSentenceService,
         IUnitOfWork unitOfWork)
@@ -27,6 +31,7 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
         _wordRepository = wordRepository;
         _userRepository = userRepository;
         _progressRepository = progressRepository;
+        _reviewHistoryRepository = reviewHistoryRepository;
         _currentUser = currentUser;
         _aiSentenceService = aiSentenceService;
         _unitOfWork = unitOfWork;
@@ -68,10 +73,10 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
                 cancellationToken);
 
             var isCorrect = evaluation.Score >= 70;
+            var qScore = ReviewInfo.CalculateQScore(isCorrect, request.TimeTakenMs);
+            var outcome = ReviewInfo.QScoreToReviewOutcome(qScore);
             if (isCorrect)
             {
-                // AI Sentence: Score'u Q skoru olarak kullan (0-100 → 0-5)
-                var qScore = (int)Math.Round(evaluation.Score / 20f); // 70→3, 80→4, 100→5
                 word.RecordReviewByQScore(true, request.TimeTakenMs);
                 user.RecordReview(DateTime.UtcNow);
                 
@@ -80,10 +85,21 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
                 progress.RecordAttempt(true, request.TimeTakenMs);
                 progress.IncrementConsecutiveSelections();
                 // EF Core otomatik olarak takip ediyor, Update() çağrısı gerekmez
-                
-                // Aynı şekilde Update() çağrıları gerekmez - EF Core değişiklikleri otomatik takip eder
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
             }
+
+            var reviewHistory = ReviewHistory.Create(
+                userId,
+                word.Id,
+                isCorrect,
+                outcome,
+                qScore,
+                request.TimeTakenMs,
+                word.Review,
+                ReviewSource.Practice);
+            _reviewHistoryRepository.Add(reviewHistory);
+
+            // Aynı şekilde Update() çağrıları gerekmez - EF Core değişiklikleri otomatik takip eder
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             return new PracticeAnswerResponse(
                 isCorrect,
@@ -111,6 +127,19 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
         {
             progressRecord.ResetConsecutiveSelections();
         }
+
+        var qScoreValue = ReviewInfo.CalculateQScore(isMatch, request.TimeTakenMs);
+        var outcomeValue = ReviewInfo.QScoreToReviewOutcome(qScoreValue);
+        var reviewHistoryRecord = ReviewHistory.Create(
+            userId,
+            word.Id,
+            isMatch,
+            outcomeValue,
+            qScoreValue,
+            request.TimeTakenMs,
+            word.Review,
+            ReviewSource.Practice);
+        _reviewHistoryRepository.Add(reviewHistoryRecord);
         
         // EF Core otomatik olarak takip ediyor, Update() çağrıları gerekmez
         await _unitOfWork.SaveChangesAsync(cancellationToken);

@@ -17,6 +17,7 @@ public sealed class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<PredefinedWord> PredefinedWords => Set<PredefinedWord>();
     public DbSet<UserVocabularyProgress> UserVocabularyProgresses => Set<UserVocabularyProgress>();
+    public DbSet<ReviewHistory> ReviewHistories => Set<ReviewHistory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -60,33 +60,28 @@ public sealed class GetReviewSessionWordsQueryHandler : IRequestHandler<GetRevie
         
         var selected = new List<VocabApp.Domain.Aggregates.WordAggregate.Word>();
 
-        // Today'dan seç (%100 - tümü ihtiyaç varsa)
-        var todayCount = Math.Min(limit, todayWords.Count);
-        selected.AddRange(todayWords.Take(todayCount));
+        // Hybrid: En gecikmişleri önce getir, kalanını çeşitlilik için karıştır.
+        var primaryCount = Math.Min(limit, (int)Math.Ceiling(limit * 0.5));
+        var primaryWords = todayWords.Take(primaryCount).ToList();
 
-        // Eğer hala yetersizse, bu gün gösterilenlerin arasından tekrar seç (fallback)
-        if (selected.Count < limit)
-        {
-            var fallbackCount = limit - selected.Count;
-            var fallbackWords = todayWords
-                .Skip(todayCount)
-                .Take(fallbackCount);
-            selected.AddRange(fallbackWords);
-        }
-
-        // Randomize et (karışık sırada göster)
-        var shuffled = selected
+        var remainingNeeded = limit - primaryWords.Count;
+        var remainingWords = todayWords
+            .Skip(primaryWords.Count)
+            .Take(remainingNeeded)
             .OrderBy(x => Guid.NewGuid())
             .ToList();
+
+        selected.AddRange(primaryWords);
+        selected.AddRange(remainingWords);
 
         // Bu session'da gösterilen kelimeleri cache'e kaydet (IncludeAll false ise)
         if (!request.IncludeAll)
         {
-            var newShownIds = shownWordIds.Concat(shuffled.Select(w => w.Id.Value)).Distinct().ToList();
+            var newShownIds = shownWordIds.Concat(selected.Select(w => w.Id.Value)).Distinct().ToList();
             var ttlUntilMidnight = today.AddDays(1) - now;
             await _cacheService.SetAsync(sessionCacheKey, newShownIds, ttlUntilMidnight, cancellationToken);
         }
 
-        return shuffled.Select(WordDto.FromEntity).ToList();
+        return selected.Select(WordDto.FromEntity).ToList();
     }
 }

@@ -337,6 +337,67 @@ namespace VocabApp.Infrastructure.Migrations
                     b.ToTable("UserVocabularyProgresses");
                 });
 
+            modelBuilder.Entity("VocabApp.Domain.Entities.ReviewHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ClientVersion")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<float>("EaseFactor")
+                        .HasColumnType("real");
+
+                    b.Property<int>("IntervalDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("NextReviewAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("QScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Repetitions")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("TimeTakenMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("WordId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "WordId");
+
+                    b.HasIndex("UserId", "ReviewedAt");
+
+                    b.HasIndex("WordId", "ReviewedAt");
+
+                    b.HasIndex("UserId", "Outcome");
+
+                    b.ToTable("ReviewHistories");
+                });
+
             modelBuilder.Entity("VocabApp.Domain.Aggregates.UserAggregate.User", b =>
                 {
                     b.OwnsMany("VocabApp.Domain.Entities.Badge", "_badges", b1 =>
