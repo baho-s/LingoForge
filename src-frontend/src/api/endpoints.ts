@@ -4,6 +4,7 @@ import type {
   DashboardDto,
   WordDto,
   GetWordListResponse,
+  GetWordFieldsResponse,
   StatsDto,
   BulkGenerateResult,
   AddWordPayload,
@@ -26,6 +27,7 @@ export const authApi = {
 export const wordsApi = {
   getAll: (skip: number = 0, take: number = 100) =>
     client.get<GetWordListResponse>('/api/words', { params: { skip, take } }),
+  getFields: () => client.get<GetWordFieldsResponse>('/api/words/fields'),
   getByField: (field: string, skip: number = 0, take: number = 100) =>
     client.get<GetWordListResponse>(`/api/words/by-field/${encodeURIComponent(field)}`, { params: { skip, take } }),
   getReviewSessionWords: (limit: number = 8, includeAll: boolean = false) =>

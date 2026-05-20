@@ -72,6 +72,19 @@ public sealed class WordRepository : IWordRepository
             .CountAsync(ct);
     }
 
+    public async Task<IReadOnlyList<(string? Field, int Count)>> GetFieldCountsAsync(UserId ownerId, CancellationToken ct = default)
+    {
+        var results = await _dbContext.Words
+            .Where(word => word.OwnerId == ownerId)
+            .GroupBy(word => word.Field)
+            .Select(group => new { Field = group.Key, Count = group.Count() })
+            .ToListAsync(ct);
+
+        return results
+            .Select(item => (item.Field, item.Count))
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<Word>> GetWordsWithoutSentenceAsync(UserId ownerId, CancellationToken ct = default)
     {
         return await _dbContext.Words

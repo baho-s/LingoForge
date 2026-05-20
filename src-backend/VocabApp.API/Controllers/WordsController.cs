@@ -7,6 +7,7 @@ using VocabApp.Application.Words.Commands.CreateWord;
 using VocabApp.Application.Words.Commands.DeleteWord;
 using VocabApp.Application.Words.Commands.RecordReview;
 using VocabApp.Application.Words.Dtos;
+using VocabApp.Application.Words.Queries.GetWordFields;
 using VocabApp.Application.Words.Queries.GetWordList;
 using VocabApp.Application.Words.Queries.GetWordOfDay;
 using VocabApp.Application.Words.Queries.GetReviewSessionWords;
@@ -32,6 +33,13 @@ public sealed class WordsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _sender.Send(new GetWordListQuery(skip, take), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("fields")]
+    public async Task<ActionResult<GetWordFieldsResponse>> GetFields(CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(new GetWordFieldsQuery(), cancellationToken);
         return Ok(result);
     }
 

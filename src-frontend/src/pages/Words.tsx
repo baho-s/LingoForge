@@ -55,15 +55,10 @@ export default function Words() {
 
   const fetchWords = async () => {
     try {
-      // Use global list only to discover fields and total count.
-      const { data: initialData } = await wordsApi.getAll(0, 100);
-      setTotalCount(initialData.totalCount);
-
-      const fieldKeys = Array.from(
-        new Set(
-          initialData.words.map((word) => (word.field && word.field.trim() ? word.field : '_no_field')),
-        ),
-      );
+      const { data: fieldsData } = await wordsApi.getFields();
+      const fieldKeys = fieldsData.fields.map((field) => field.field);
+      const totalFromFields = fieldsData.fields.reduce((sum, field) => sum + field.count, 0);
+      setTotalCount(totalFromFields);
 
       if (fieldKeys.length === 0) {
         setWords([]);
@@ -85,8 +80,11 @@ export default function Words() {
       const nextDisplayed: Record<string, number> = {};
       const nextTotals: Record<string, number> = {};
 
+      fieldsData.fields.forEach((field) => {
+        nextTotals[field.field] = field.count;
+      });
+
       fieldResults.forEach(({ fieldKey, data }) => {
-        nextTotals[fieldKey] = data.totalCount;
         nextDisplayed[fieldKey] = data.words.length;
         data.words.forEach((word) => {
           if (!seenIds.has(word.id)) {
@@ -412,7 +410,7 @@ export default function Words() {
               {field === '_no_field' && fieldWords.length > 0 && (
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Sizin Kelimeleriniz</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Benim Kelimelerim</h3>
                     <p className="text-xs text-gray-500">{totalCountByField[field] ?? fieldWords.length} kelime</p>
                   </div>
                   <button
@@ -588,10 +586,10 @@ export default function Words() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget} Alanındaki Kelimeleri Sil
+                  {deleteFieldTarget === '_no_field' ? 'Benim Kelimelerim' : deleteFieldTarget} Alanındaki Kelimeleri Sil
                 </h3>
                 <p className="text-sm text-gray-500">
-                  "<span className="font-medium text-gray-700">{deleteFieldTarget === '_no_field' ? 'Sizin Kelimeleriniz' : deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{totalCountByField[deleteFieldTarget] ?? filtered.filter(w => (w.field || '_no_field') === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
+                  "<span className="font-medium text-gray-700">{deleteFieldTarget === '_no_field' ? 'Benim Kelimelerim' : deleteFieldTarget}</span>" alanındaki <span className="font-medium text-gray-700">{totalCountByField[deleteFieldTarget] ?? filtered.filter(w => (w.field || '_no_field') === deleteFieldTarget).length}</span> kelime silinecektir. Bu işlem geri alınamaz.
                 </p>
               </div>
             </div>

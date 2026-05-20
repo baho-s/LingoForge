@@ -22,6 +22,15 @@ export interface GetWordListResponse {
   totalCount: number;
 }
 
+export interface WordFieldCount {
+  field: string;
+  count: number;
+}
+
+export interface GetWordFieldsResponse {
+  fields: WordFieldCount[];
+}
+
 export interface AddWordPayload {
   original: string;
   translation: string;

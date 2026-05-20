@@ -11,6 +11,7 @@ public interface IWordRepository
     Task<int> GetTotalCountByOwnerAsync(UserId ownerId, CancellationToken ct = default);
     Task<IReadOnlyList<Word>> GetByFieldPaginatedAsync(UserId ownerId, string field, int skip, int take, CancellationToken ct = default);
     Task<int> GetTotalCountByFieldAsync(UserId ownerId, string field, CancellationToken ct = default);
+    Task<IReadOnlyList<(string? Field, int Count)>> GetFieldCountsAsync(UserId ownerId, CancellationToken ct = default);
     Task<IReadOnlyList<Word>> GetByOwnerAndFieldAsync(UserId ownerId, string field, CancellationToken ct = default);
     Task<IReadOnlyList<Word>> GetWordsWithoutSentenceAsync(UserId ownerId, CancellationToken ct = default);
     Task<IReadOnlyList<Word>> GetByOwnerOrderedByDifficultyAsync(UserId ownerId, CancellationToken ct = default);
