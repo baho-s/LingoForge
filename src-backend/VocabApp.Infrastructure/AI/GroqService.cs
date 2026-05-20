@@ -1,4 +1,5 @@
 ﻿// VocabApp.Infrastructure/AI/GroqService.cs
+using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -79,22 +80,20 @@ public sealed class GroqService : IAiSentenceService
             throw new InvalidOperationException("Groq ApiKey is not configured.");
 
         var requestBody = new ChatRequest(
-    Model: _options.Model,
-    Messages:
-    [
-        new ChatMessage("system",
-            "You are a strict bilingual evaluator. " +
-            "Compare the English sentence with the user's Turkish translation. " +
-            "Return a JSON response with exactly these fields: " +
-            "{\"score\": <0-100>, \"feedback\": \"<evaluation text>\"}. " +
-            "Score the translation on semantic accuracy (0-100). " +
-            "Keep feedback concise and in Turkish."),
-        
-        new ChatMessage("user",
-            $"English sentence: {englishSentence}\n\nUser's Turkish translation: {userTranslation}\n\nRespond with valid JSON only.")
-    ],
-    MaxTokens: Math.Max(80, _options.MaxTokens)
-);
+            Model: _options.Model,
+            Messages:
+            [
+                new ChatMessage("system",
+                    "You are a strict bilingual evaluator for an English-to-Turkish translation test. " +
+                    "Rules: The user's answer must be Turkish. If the user repeats the English sentence or answers in English, score must be 0-20 and error_summary must say it is in English. " +
+                    "Always return valid JSON with exactly these fields: " +
+                    "{\"score\": <0-100>, \"error_summary\": \"<short Turkish error or praise>\", \"correct_translation\": \"<natural Turkish translation>\"}. " +
+                    "Score by semantic accuracy. Keep error_summary short and specific (mention the key mistake if any)."),
+                new ChatMessage("user",
+                    $"English sentence: {englishSentence}\n\nUser's Turkish translation: {userTranslation}\n\nRespond with valid JSON only.")
+            ],
+            MaxTokens: Math.Max(120, _options.MaxTokens)
+        );
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/openai/v1/chat/completions")
         {
@@ -127,22 +126,32 @@ public sealed class GroqService : IAiSentenceService
             {
                 // Fallback: benimse cevabı basit heuristic'le
                 var defaultScore = userTranslation.Length > englishSentence.Length / 2 ? 60 : 30;
-                return new AiEvaluationResult(defaultScore, "Değerlendirme tamamlandı.");
+                return new AiEvaluationResult(defaultScore, "Değerlendirme tamamlandı.", null);
             }
 
             var score = Math.Clamp(result.Score, 0, 100);
-            var feedback = string.IsNullOrWhiteSpace(result.Feedback)
+            var feedback = string.IsNullOrWhiteSpace(result.ErrorSummary)
                 ? "Değerlendirme tamamlandı."
-                : result.Feedback.Trim();
+                : result.ErrorSummary.Trim();
+            var correctTranslation = string.IsNullOrWhiteSpace(result.CorrectTranslation)
+                ? null
+                : result.CorrectTranslation.Trim();
 
-            return new AiEvaluationResult(score, feedback);
+            if (IsLikelyEnglishAnswer(userTranslation) || IsEnglishCopy(englishSentence, userTranslation))
+            {
+                var forcedScore = Math.Min(score, 20);
+                var forcedFeedback = "Cevap Türkçe olmalı; İngilizce metni aynen yazmışsın.";
+                return new AiEvaluationResult(forcedScore, forcedFeedback, correctTranslation);
+            }
+
+            return new AiEvaluationResult(score, feedback, correctTranslation);
         }
         catch (JsonException ex)
         {
             // JSON parsing başarısız olursa fallback response
             System.Diagnostics.Debug.WriteLine($"JSON parsing failed: {ex.Message}. Content: {content}");
             var defaultScore = userTranslation.Length > englishSentence.Length / 2 ? 60 : 30;
-            return new AiEvaluationResult(defaultScore, "Değerlendirme tamamlandı.");
+            return new AiEvaluationResult(defaultScore, "Değerlendirme tamamlandı.", null);
         }
     }
 
@@ -164,6 +173,171 @@ public sealed class GroqService : IAiSentenceService
 
         // Eğer JSON bulunamazsa, content'in kendisini return et (muhtemelen zaten JSON'dır)
         return content.Trim();
+    }
+
+    private static bool IsLikelyEnglishAnswer(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        if (ContainsTurkishChars(text))
+        {
+            return false;
+        }
+
+        if (ContainsTurkishCommonWord(text))
+        {
+            return false;
+        }
+
+        var letterCount = 0;
+        var englishLetterCount = 0;
+
+        foreach (var ch in text)
+        {
+            if (char.IsLetter(ch))
+            {
+                letterCount += 1;
+                if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+                {
+                    englishLetterCount += 1;
+                }
+            }
+        }
+
+        if (letterCount == 0)
+        {
+            return false;
+        }
+
+        return englishLetterCount / (double)letterCount >= 0.85;
+    }
+
+    private static bool ContainsTurkishCommonWord(string text)
+    {
+        var normalized = NormalizeForCompare(text);
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            return false;
+        }
+
+        var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length == 0)
+        {
+            return false;
+        }
+
+        var common = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "ve", "bir", "bu", "su", "icin", "degil", "ama", "gibi",
+            "olan", "daha", "cok", "ben", "sen", "o", "biz", "siz",
+            "onlar", "ile", "mi", "mu", "mu", "midir", "neden",
+            "ne", "kim", "nerede", "nasil", "kadar"
+        };
+
+        foreach (var token in tokens)
+        {
+            if (common.Contains(token))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsEnglishCopy(string englishSentence, string userTranslation)
+    {
+        var normEnglish = NormalizeForCompare(englishSentence);
+        var normUser = NormalizeForCompare(userTranslation);
+
+        if (string.IsNullOrWhiteSpace(normEnglish) || string.IsNullOrWhiteSpace(normUser))
+        {
+            return false;
+        }
+
+        if (string.Equals(normEnglish, normUser, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        var englishTokens = normEnglish.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var userTokens = normUser.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (englishTokens.Length == 0 || userTokens.Length == 0)
+        {
+            return false;
+        }
+
+        var intersection = 0;
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var token in englishTokens)
+        {
+            seen.Add(token);
+        }
+        foreach (var token in userTokens)
+        {
+            if (seen.Contains(token))
+            {
+                intersection += 1;
+            }
+        }
+
+        var union = englishTokens.Length + userTokens.Length - intersection;
+        if (union <= 0)
+        {
+            return false;
+        }
+
+        var similarity = intersection / (double)union;
+        return similarity >= 0.7;
+    }
+
+    private static string NormalizeForCompare(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        var buffer = new char[text.Length];
+        var idx = 0;
+        foreach (var ch in text)
+        {
+            if (char.IsLetterOrDigit(ch) || char.IsWhiteSpace(ch))
+            {
+                buffer[idx++] = char.ToLowerInvariant(ch);
+            }
+        }
+
+        return new string(buffer, 0, idx).Trim();
+    }
+
+    private static bool ContainsTurkishChars(string text)
+    {
+        foreach (var ch in text)
+        {
+            switch (ch)
+            {
+                case 'ç':
+                case 'ğ':
+                case 'ı':
+                case 'ö':
+                case 'ş':
+                case 'ü':
+                case 'Ç':
+                case 'Ğ':
+                case 'İ':
+                case 'Ö':
+                case 'Ş':
+                case 'Ü':
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     // ── Request modelleri ────────────────────────────────────────────
@@ -189,6 +363,7 @@ public sealed class GroqService : IAiSentenceService
 
     private sealed record EvaluationResult(
         [property: JsonPropertyName("score")] int Score,
-        [property: JsonPropertyName("feedback")] string Feedback
+        [property: JsonPropertyName("error_summary")] string ErrorSummary,
+        [property: JsonPropertyName("correct_translation")] string CorrectTranslation
     );
 }

@@ -9,4 +9,4 @@ public interface IAiSentenceService
         CancellationToken ct = default);
 }
 
-public sealed record AiEvaluationResult(int Score, string Feedback);
+public sealed record AiEvaluationResult(int Score, string Feedback, string? CorrectTranslation);

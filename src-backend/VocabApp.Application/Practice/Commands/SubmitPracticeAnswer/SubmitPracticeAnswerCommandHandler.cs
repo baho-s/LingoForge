@@ -105,7 +105,7 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
                 isCorrect,
                 evaluation.Score,
                 evaluation.Feedback,
-                null);
+                evaluation.CorrectTranslation);
         }
 
         var direction = request.Direction?.Trim().ToUpperInvariant();

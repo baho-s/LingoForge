@@ -559,20 +559,28 @@ export default function Practice() {
               <div
                 className={`rounded-xl px-4 py-3 text-sm ${practiceFeedback.is_correct ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}
               >
+                {(() => {
+                  const fallbackCorrect = question.type === 'ai_sentence' ? undefined : question.correct_answer;
+                  const correctAnswer = practiceFeedback.correct_answer ?? fallbackCorrect;
+                  return (
+                    <>
                 <p className="font-medium">
                   {practiceFeedback.is_correct ? t('practice.isCorrect') : t('practice.isIncorrect')}
                 </p>
                 {practiceFeedback.feedback && question.type === 'ai_sentence' && (
                   <p className="text-xs mt-1 opacity-80">{practiceFeedback.feedback}</p>
                 )}
-                {!practiceFeedback.is_correct && question.type !== 'ai_sentence' && (practiceFeedback.correct_answer || question.correct_answer) && (
+                {!practiceFeedback.is_correct && correctAnswer && (
                   <p className="text-xs mt-1 opacity-80">
-                    {t('practice.correct')}: {practiceFeedback.correct_answer ?? question.correct_answer}
+                    {t('practice.correct')}: {correctAnswer}
                   </p>
                 )}
                 {practiceFeedback.accuracy_score !== undefined && (
                   <p className="text-xs mt-1 opacity-80">{t('practice.accuracyScore')}: {practiceFeedback.accuracy_score}%</p>
                 )}
+                    </>
+                  );
+                })()}
               </div>
             )}
 
