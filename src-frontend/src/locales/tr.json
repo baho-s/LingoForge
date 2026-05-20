@@ -93,6 +93,11 @@
     "totalWords": "Toplam Kelime",
     "wordsLearnedThisWeek": "Bu Hafta Öğrenilen",
     "averageEaseFactor": "Ortalama Kolaylık",
+    "totalAttempts": "Toplam Deneme",
+    "correctAttempts": "Doğru Sayısı",
+    "accuracyRate": "Başarı Oranı",
+    "averageTimeTaken": "Ortalama Süre",
+    "correctThisWeek": "Bu Hafta Doğru",
     "learningProgress": "Öğrenme İlerlemesi",
     "noStatsAvailable": "Henüz istatistik mevcut değil."
   },

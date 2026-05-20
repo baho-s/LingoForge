@@ -93,6 +93,11 @@
     "totalWords": "Total Words",
     "wordsLearnedThisWeek": "Learned This Week",
     "averageEaseFactor": "Average Ease",
+    "totalAttempts": "Total Attempts",
+    "correctAttempts": "Correct Answers",
+    "accuracyRate": "Accuracy Rate",
+    "averageTimeTaken": "Avg. Answer Time",
+    "correctThisWeek": "Correct This Week",
     "learningProgress": "Learning Progress",
     "noStatsAvailable": "No statistics available yet."
   },

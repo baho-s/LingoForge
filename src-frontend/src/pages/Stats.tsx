@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Target, TrendingUp, Flame } from 'lucide-react';
+import { BookOpen, Target, TrendingUp, Flame, CheckCircle2, Activity, Timer } from 'lucide-react';
 import { statsApi } from '../api/endpoints';
 import type { StatsDto, ActivityHeatmapDay } from '../types';
 import { SkeletonCard, SkeletonBar } from '../components/Skeleton';
@@ -13,8 +13,11 @@ export default function Stats() {
 
   const statCards = [
     { key: 'totalWords' as const, label: t('stats.totalWords'), icon: BookOpen, color: 'bg-blue-50 text-blue-600' },
-    { key: 'wordsLearnedThisWeek' as const, label: t('stats.wordsLearnedThisWeek'), icon: TrendingUp, color: 'bg-green-50 text-green-600' },
-    { key: 'averageEaseFactor' as const, label: t('stats.averageEaseFactor'), icon: Target, color: 'bg-amber-50 text-amber-600', suffix: '' },
+    { key: 'totalAttempts' as const, label: t('stats.totalAttempts'), icon: Activity, color: 'bg-indigo-50 text-indigo-600' },
+    { key: 'correctAttempts' as const, label: t('stats.correctAttempts'), icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-600' },
+    { key: 'accuracyRate' as const, label: t('stats.accuracyRate'), icon: TrendingUp, color: 'bg-green-50 text-green-600', format: (v: number) => `%${(v * 100).toFixed(1)}` },
+    { key: 'averageTimeTakenMs' as const, label: t('stats.averageTimeTaken'), icon: Timer, color: 'bg-amber-50 text-amber-600', format: (v: number) => `${(v / 1000).toFixed(1)} sn` },
+    { key: 'correctAttemptsThisWeek' as const, label: t('stats.correctThisWeek'), icon: Target, color: 'bg-orange-50 text-orange-600' },
   ];
 
   useEffect(() => {
@@ -46,12 +49,12 @@ export default function Stats() {
       {/* Main stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading
-          ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
+          ? Array.from({ length: statCards.length }).map((_, i) => <SkeletonCard key={i} />)
           : statCards.map((card) => {
               const Icon = card.icon;
               const value = stats?.[card.key] ?? 0;
-              const displayValue = card.key === 'averageEaseFactor'
-                ? Number(value).toFixed(2)
+              const displayValue = card.format
+                ? card.format(Number(value))
                 : value;
               return (
                 <div key={card.key} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">

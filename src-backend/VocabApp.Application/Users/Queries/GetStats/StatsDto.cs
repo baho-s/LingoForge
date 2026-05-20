@@ -6,4 +6,9 @@ public sealed record StatsDto(
     int TotalWords,
     int WordsLearnedThisWeek,
     float AverageEaseFactor,
+    int TotalAttempts,
+    int CorrectAttempts,
+    float AccuracyRate,
+    long AverageTimeTakenMs,
+    int CorrectAttemptsThisWeek,
     IReadOnlyList<ActivityHeatmapDay> ActivityHeatmap);

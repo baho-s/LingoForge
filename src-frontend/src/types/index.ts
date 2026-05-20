@@ -152,6 +152,11 @@ export interface StatsDto {
   totalWords: number;
   wordsLearnedThisWeek: number;
   averageEaseFactor: number;
+  totalAttempts: number;
+  correctAttempts: number;
+  accuracyRate: number;
+  averageTimeTakenMs: number;
+  correctAttemptsThisWeek: number;
   activityHeatmap: ActivityHeatmapDay[];
 }
 

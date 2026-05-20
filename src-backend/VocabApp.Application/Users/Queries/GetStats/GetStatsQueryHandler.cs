@@ -9,17 +9,20 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
     private readonly IUserRepository _userRepository;
     private readonly IWordRepository _wordRepository;
     private readonly IUserVocabularyProgressRepository _progressRepository;
+    private readonly IReviewHistoryRepository _reviewHistoryRepository;
     private readonly ICurrentUserService _currentUser;
 
     public GetStatsQueryHandler(
         IUserRepository userRepository,
         IWordRepository wordRepository,
         IUserVocabularyProgressRepository progressRepository,
+        IReviewHistoryRepository reviewHistoryRepository,
         ICurrentUserService currentUser)
     {
         _userRepository = userRepository;
         _wordRepository = wordRepository;
         _progressRepository = progressRepository;
+        _reviewHistoryRepository = reviewHistoryRepository;
         _currentUser = currentUser;
     }
 
@@ -48,6 +51,19 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
         var yearAgo = today.AddDays(-365);
         
         var userProgresses = await _progressRepository.GetByUserAsync(userId, cancellationToken);
+
+        var totalAttempts = userProgresses.Sum(progress => progress.TotalAttempts);
+        var correctAttempts = userProgresses.Sum(progress => progress.CorrectAttempts);
+        var accuracyRate = totalAttempts > 0
+            ? (float)correctAttempts / totalAttempts
+            : 0f;
+        var weightedTimeSum = userProgresses.Sum(progress => (double)progress.TotalAttempts * progress.AverageTimeTakenMs);
+        var averageTimeTakenMs = totalAttempts > 0
+            ? (long)Math.Round(weightedTimeSum / totalAttempts)
+            : 0L;
+
+        var reviewHistory = await _reviewHistoryRepository.GetByUserAsync(userId, cancellationToken);
+        var correctAttemptsThisWeek = reviewHistory.Count(history => history.ReviewedAt >= oneWeekAgo && history.IsCorrect);
         
         var activityCounts = new Dictionary<DateOnly, int>();
         for (var i = 0; i < 365; i++)
@@ -77,6 +93,11 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
             totalWords,
             wordsLearnedThisWeek,
             averageEaseFactor,
+            totalAttempts,
+            correctAttempts,
+            accuracyRate,
+            averageTimeTakenMs,
+            correctAttemptsThisWeek,
             activityHeatmap);
     }
 }
