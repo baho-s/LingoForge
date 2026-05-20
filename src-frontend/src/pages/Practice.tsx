@@ -148,6 +148,7 @@ export default function Practice() {
         question_id: question.id,
         type: question.type,
         user_answer: option,
+        direction: question.direction,
         time_taken_ms: timeTakenMs,
       });
       setPracticeFeedback(data);
@@ -162,7 +163,7 @@ export default function Practice() {
     setPracticeSubmitted(true);
     setPracticeFeedback({
       is_correct: isCorrect,
-      feedback: isCorrect ? t('practice.correct') : `Doğru cevap: ${question.correct_answer}`,
+      feedback: isCorrect ? t('practice.correct') : t('practice.incorrect'),
     });
     if (isCorrect) setPracticeCorrectCount((count) => count + 1);
     try {
@@ -172,6 +173,7 @@ export default function Practice() {
         question_id: question.id,
         type: question.type,
         user_answer: practiceAnswer,
+        direction: question.direction,
         time_taken_ms: timeTakenMs,
       });
       setPracticeFeedback(data);
@@ -191,6 +193,7 @@ export default function Practice() {
         question_id: question.id,
         type: question.type,
         user_answer: practiceAnswer,
+        direction: question.direction,
         time_taken_ms: timeTakenMs,
       });
       setPracticeFeedback(data);
@@ -559,8 +562,13 @@ export default function Practice() {
                 <p className="font-medium">
                   {practiceFeedback.is_correct ? t('practice.isCorrect') : t('practice.isIncorrect')}
                 </p>
-                {practiceFeedback.feedback && (
+                {practiceFeedback.feedback && question.type === 'ai_sentence' && (
                   <p className="text-xs mt-1 opacity-80">{practiceFeedback.feedback}</p>
+                )}
+                {!practiceFeedback.is_correct && question.type !== 'ai_sentence' && (practiceFeedback.correct_answer || question.correct_answer) && (
+                  <p className="text-xs mt-1 opacity-80">
+                    {t('practice.correct')}: {practiceFeedback.correct_answer ?? question.correct_answer}
+                  </p>
                 )}
                 {practiceFeedback.accuracy_score !== undefined && (
                   <p className="text-xs mt-1 opacity-80">{t('practice.accuracyScore')}: {practiceFeedback.accuracy_score}%</p>

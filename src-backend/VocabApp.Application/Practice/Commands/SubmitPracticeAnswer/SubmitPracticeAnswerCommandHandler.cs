@@ -43,18 +43,18 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
     {
         if (string.IsNullOrWhiteSpace(request.UserAnswer))
         {
-            return new PracticeAnswerResponse(false, 0, "Answer is required.");
+            return new PracticeAnswerResponse(false, 0, "Answer is required.", null);
         }
 
         if (!Guid.TryParse(request.QuestionId, out var questionId))
         {
-            return new PracticeAnswerResponse(false, 0, "Invalid question id.");
+            return new PracticeAnswerResponse(false, 0, "Invalid question id.", null);
         }
 
         var word = await _wordRepository.GetByIdAsync(new WordId(questionId), cancellationToken);
         if (word is null)
         {
-            return new PracticeAnswerResponse(false, 0, "Question not found.");
+            return new PracticeAnswerResponse(false, 0, "Question not found.", null);
         }
 
         var userId = _currentUser.GetUserId();
@@ -104,12 +104,25 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
             return new PracticeAnswerResponse(
                 isCorrect,
                 evaluation.Score,
-                evaluation.Feedback);
+                evaluation.Feedback,
+                null);
+        }
+
+        var direction = request.Direction?.Trim().ToUpperInvariant();
+        string? correctAnswer = direction switch
+        {
+            "EN_TO_TR" => word.Translation,
+            "TR_TO_EN" => word.Original,
+            _ => null,
+        };
+
+        if (string.IsNullOrWhiteSpace(correctAnswer))
+        {
+            return new PracticeAnswerResponse(false, 0, "Invalid direction.", null);
         }
 
         var answer = request.UserAnswer.Trim();
-        var isMatch = string.Equals(answer, word.Translation, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(answer, word.Original, StringComparison.OrdinalIgnoreCase);
+        var isMatch = string.Equals(answer, correctAnswer, StringComparison.OrdinalIgnoreCase);
 
         // Q score mapping ile SM-2 algoritmasını uygula
         word.RecordReviewByQScore(isMatch, request.TimeTakenMs);
@@ -147,6 +160,7 @@ public sealed class SubmitPracticeAnswerCommandHandler : IRequestHandler<SubmitP
         return new PracticeAnswerResponse(
             isMatch,
             isMatch ? 100 : 0,
-            isMatch ? "Correct!" : "Incorrect.");
+            isMatch ? "Correct!" : "Incorrect.",
+            isMatch ? null : correctAnswer);
     }
 }

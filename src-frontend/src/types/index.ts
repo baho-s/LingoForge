@@ -129,6 +129,7 @@ export interface PracticeAnswerPayload {
   question_id: string;
   type: PracticeQuestionType;
   user_answer: string;
+  direction?: PracticeDirection;
   time_taken_ms: number;
 }
 
@@ -136,6 +137,7 @@ export interface PracticeAnswerResponse {
   is_correct: boolean;
   accuracy_score?: number;
   feedback?: string;
+  correct_answer?: string;
 }
 
 export interface GenerateSentencePayload {

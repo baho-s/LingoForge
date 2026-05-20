@@ -23,4 +23,5 @@ public sealed record GeneratedSentenceResponse(
 public sealed record PracticeAnswerResponse(
     [property: JsonPropertyName("is_correct")] bool IsCorrect,
     [property: JsonPropertyName("accuracy_score")] int? AccuracyScore,
-    [property: JsonPropertyName("feedback")] string? Feedback);
+    [property: JsonPropertyName("feedback")] string? Feedback,
+    [property: JsonPropertyName("correct_answer")] string? CorrectAnswer);

@@ -54,6 +54,7 @@ public sealed class PracticeController : ControllerBase
                 request.QuestionId,
                 request.UserAnswer,
                 request.Type,
+                request.Direction,
                 request.TimeTakenMs),
             cancellationToken);
         return Ok(result);
@@ -66,5 +67,6 @@ public sealed class PracticeController : ControllerBase
         [property: JsonPropertyName("question_id")] string QuestionId,
         [property: JsonPropertyName("type")] string Type,
         [property: JsonPropertyName("user_answer")] string UserAnswer,
+        [property: JsonPropertyName("direction")] string? Direction,
         [property: JsonPropertyName("time_taken_ms")] long TimeTakenMs = 0);
 }
