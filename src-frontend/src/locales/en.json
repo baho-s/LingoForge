@@ -98,6 +98,10 @@
     "accuracyRate": "Accuracy Rate",
     "averageTimeTaken": "Avg. Answer Time",
     "correctThisWeek": "Correct This Week",
+    "todaySummary": "Today's Summary",
+    "todayAttempts": "Attempts Today",
+    "todayCorrect": "Correct Today",
+    "todayIncorrect": "Incorrect Today",
     "learningProgress": "Learning Progress",
     "noStatsAvailable": "No statistics available yet."
   },

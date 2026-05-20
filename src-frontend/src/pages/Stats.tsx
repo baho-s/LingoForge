@@ -68,10 +68,47 @@ export default function Stats() {
             })}
       </div>
 
-      {/* Activity Heatmap */}
+      {/* Today Summary */}
       {loading ? (
         <SkeletonBar />
-      ) : stats?.activityHeatmap && stats.activityHeatmap.length > 0 ? (
+      ) : stats ? (
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="flex items-center gap-2 mb-4">
+            <Flame size={18} className="text-orange-500" />
+            <h3 className="text-lg font-semibold text-gray-900">{t('stats.todaySummary')}</h3>
+          </div>
+          {(() => {
+            const todayAttempts = stats.todayAttempts ?? 0;
+            const todayCorrect = stats.todayCorrectAttempts ?? 0;
+            const todayIncorrect = Math.max(0, todayAttempts - todayCorrect);
+            const correctPercent = todayAttempts > 0 ? (todayCorrect / todayAttempts) * 100 : 0;
+            const incorrectPercent = todayAttempts > 0 ? (todayIncorrect / todayAttempts) * 100 : 0;
+
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>{t('stats.todayAttempts')}: {todayAttempts}</span>
+                  <span>{t('stats.todayCorrect')}: {todayCorrect}</span>
+                  <span>{t('stats.todayIncorrect')}: {todayIncorrect}</span>
+                </div>
+                <div className="flex h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-500"
+                    style={{ width: `${correctPercent}%` }}
+                  />
+                  <div
+                    className="h-full bg-rose-400"
+                    style={{ width: `${incorrectPercent}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      ) : null}
+
+      {/* Activity Heatmap */}
+      {!loading && stats?.activityHeatmap && stats.activityHeatmap.length > 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center gap-2 mb-6">
             <Flame size={18} className="text-orange-500" />

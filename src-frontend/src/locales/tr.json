@@ -98,6 +98,10 @@
     "accuracyRate": "Başarı Oranı",
     "averageTimeTaken": "Ortalama Süre",
     "correctThisWeek": "Bu Hafta Doğru",
+    "todaySummary": "Bugün Özeti",
+    "todayAttempts": "Bugün Deneme",
+    "todayCorrect": "Bugün Doğru",
+    "todayIncorrect": "Bugün Yanlış",
     "learningProgress": "Öğrenme İlerlemesi",
     "noStatsAvailable": "Henüz istatistik mevcut değil."
   },

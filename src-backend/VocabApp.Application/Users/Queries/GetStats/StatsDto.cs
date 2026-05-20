@@ -11,4 +11,6 @@ public sealed record StatsDto(
     float AccuracyRate,
     long AverageTimeTakenMs,
     int CorrectAttemptsThisWeek,
+    int TodayAttempts,
+    int TodayCorrectAttempts,
     IReadOnlyList<ActivityHeatmapDay> ActivityHeatmap);
