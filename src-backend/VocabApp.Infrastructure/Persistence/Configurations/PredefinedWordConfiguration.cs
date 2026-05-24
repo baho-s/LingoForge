@@ -26,6 +26,9 @@ public sealed class PredefinedWordConfiguration : IEntityTypeConfiguration<Prede
         builder.Property(pw => pw.Category)
             .HasMaxLength(100);
 
+        builder.Property(pw => pw.Level)
+            .HasMaxLength(2);
+
         builder.Property(pw => pw.Original)
             .HasMaxLength(200)
             .IsRequired();

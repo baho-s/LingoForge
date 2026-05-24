@@ -7,6 +7,7 @@ public sealed class PredefinedWord : AggregateRoot<PredefinedWordId>
 {
     public string Field { get; private set; } = string.Empty;
     public string? Category { get; private set; }
+    public string? Level { get; private set; }
     public string Original { get; private set; } = string.Empty;
     public string Translation { get; private set; } = string.Empty;
     public string? AiSentence { get; private set; }
@@ -19,6 +20,7 @@ public sealed class PredefinedWord : AggregateRoot<PredefinedWordId>
         PredefinedWordId id,
         string field,
         string? category,
+        string? level,
         string original,
         string translation,
         string? aiSentence)
@@ -26,6 +28,7 @@ public sealed class PredefinedWord : AggregateRoot<PredefinedWordId>
     {
         Field = field;
         Category = category;
+        Level = level;
         Original = original;
         Translation = translation;
         AiSentence = aiSentence;
@@ -38,7 +41,8 @@ public sealed class PredefinedWord : AggregateRoot<PredefinedWordId>
         string? category,
         string original,
         string translation,
-        string? aiSentence = null)
+        string? aiSentence = null,
+        string? level = null)
     {
         if (string.IsNullOrWhiteSpace(field))
             throw new ArgumentException("Field is required.", nameof(field));
@@ -53,6 +57,7 @@ public sealed class PredefinedWord : AggregateRoot<PredefinedWordId>
             PredefinedWordId.Create(),
             field.Trim(),
             category?.Trim(),
+            level?.Trim(),
             original.Trim(),
             translation.Trim(),
             aiSentence?.Trim());

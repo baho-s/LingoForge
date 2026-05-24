@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Brain, ArrowLeft, Loader2, AlertCircle, ListChecks, PenSquare, Sparkles } from 'lucide-react';
 import { wordsApi, practiceApi } from '../api/endpoints';
@@ -12,6 +13,7 @@ type Mode = 'select' | 'review' | 'practice';
 
 export default function Practice() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('select');
 
   // Review state
@@ -239,12 +241,25 @@ export default function Practice() {
   }, [mode, flipped, handleReviewOutcome]);
 
   if (error && mode === 'select') {
+    const showAddWordsCta =
+      error === t('practice.noWordsAvailable') ||
+      error === t('practice.noPracticeWordsAvailable');
     return (
       <div className="max-w-3xl mx-auto">
         <div className="bg-amber-50 text-amber-700 rounded-xl px-4 py-3 text-sm flex items-center gap-2">
           <AlertCircle size={16} />
           {error}
         </div>
+        {showAddWordsCta && (
+          <div className="mt-4">
+            <button
+              onClick={() => navigate('/words')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              {t('words.addWord')}
+            </button>
+          </div>
+        )}
       </div>
     );
   }

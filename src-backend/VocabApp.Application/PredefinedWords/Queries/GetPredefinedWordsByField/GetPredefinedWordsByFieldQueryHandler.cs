@@ -24,6 +24,7 @@ public sealed class GetPredefinedWordsByFieldQueryHandler : IRequestHandler<GetP
             w.Id.Value.ToString(),
             w.Field,
             w.Category,
+            w.Level,
             w.Original,
             w.Translation,
             w.AiSentence)).ToList();

@@ -8,6 +8,7 @@ public sealed record PredefinedWordDto(
     string Id,
     string Field,
     string? Category,
+    string? Level,
     string Original,
     string Translation,
     string? AiSentence);

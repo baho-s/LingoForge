@@ -32,7 +32,7 @@ public sealed class Word : AggregateRoot<WordId>
             LastReviewedAt: null
         );
     }
-
+    
     public static Word Create(UserId ownerId, string original, string translation)
     {
         if (string.IsNullOrWhiteSpace(original))
