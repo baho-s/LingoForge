@@ -1,4 +1,4 @@
-# 📊 VocabApp Backend - Detaylı Mimari Analiz Raporu
+# 📊 BeeZillion Backend - Detaylı Mimari Analiz Raporu
 
 ## 📋 İçerik
 1. [Project Architecture](#proje-mimarisi)
@@ -18,13 +18,13 @@
 ### Katman Yapısı (4-Tier Clean Architecture)
 
 ```
-VocabApp.API (Presentation Layer)
+BeeZillion.API (Presentation Layer)
     ├── Controllers/ (8 controller)
     ├── Middleware/ (Exception Handling)
     ├── Services/ (CurrentUserService)
     └── DependencyInjection.cs
 
-VocabApp.Application (Application/Business Layer)
+BeeZillion.Application (Application/Business Layer)
     ├── Auth/ (Commands: Login, Register + Dtos)
     ├── Words/ (Commands: 7 item, Queries: 4 item)
     ├── Practice/ (Commands: 2 item, Queries: 1 item)
@@ -32,7 +32,7 @@ VocabApp.Application (Application/Business Layer)
     ├── Users/ (Queries: 2 item)
     └── Common/ (Behaviors, Exceptions, Events, Interfaces)
 
-VocabApp.Domain (Domain Layer - DDD)
+BeeZillion.Domain (Domain Layer - DDD)
     ├── Aggregates/ (User, Word, PredefinedWord)
     ├── ValueObjects/ (UserId, WordId, ReviewInfo, vb.)
     ├── Events/ (Domain Events)
@@ -40,7 +40,7 @@ VocabApp.Domain (Domain Layer - DDD)
     ├── Repositories/ (Interfaces only)
     └── Enums/ (ReviewOutcome, BadgeType)
 
-VocabApp.Infrastructure (Infrastructure/Persistence Layer)
+BeeZillion.Infrastructure (Infrastructure/Persistence Layer)
     ├── Persistence/ (EF Core DbContext, Repositories, UnitOfWork)
     ├── Auth/ (JWT Token, BCrypt Password Hashing)
     ├── AI/ (Groq Integration)
@@ -321,8 +321,8 @@ HttpPolicyExtensions
 ## 🔴 KRITIK - Dead Code
 
 ### ❌ 1. Boşta Command Klasörleri (2 adet):
-- `VocabApp.Application/Words/Commands/RecordPracticeAnswer/` → **EMPTY** 
-- `VocabApp.Application/Words/Commands/RecordQuizAnswer/` → **EMPTY**
+- `BeeZillion.Application/Words/Commands/RecordPracticeAnswer/` → **EMPTY** 
+- `BeeZillion.Application/Words/Commands/RecordQuizAnswer/` → **EMPTY**
 
 **Impact:** Bu commands hiç kullanılmıyor. Klasör yapısı var fakat handler dosyaları yok.
 
@@ -539,3 +539,4 @@ if (isCorrect)
 - [ ] Domain logic tekrarını refactor et
 - [ ] Transaction handling'i iyileştir
 - [ ] Tüm handler'lara input validation ekle
+

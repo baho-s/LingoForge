@@ -25,7 +25,7 @@ PracticeQuestionsResponse
 
 ### Step-by-Step Flow
 
-**1. API Endpoint** ([PracticeController.cs](src-backend/VocabApp.API/Controllers/PracticeController.cs#L24-L36))
+**1. API Endpoint** ([PracticeController.cs](src-backend/BeeZillion.API/Controllers/PracticeController.cs#L24-L36))
 ```csharp
 GET /api/practice/questions?mode=multiple_choice,ai_sentence&limit=8
 ```
@@ -33,7 +33,7 @@ GET /api/practice/questions?mode=multiple_choice,ai_sentence&limit=8
 - Accepts `limit` (default 8)
 - Delegates to MediatR
 
-**2. Query Handler** ([GetPracticeQuestionsQueryHandler.cs](src-backend/VocabApp.Application/Practice/Queries/GetPracticeQuestions/GetPracticeQuestionsQueryHandler.cs#L22-L44))
+**2. Query Handler** ([GetPracticeQuestionsQueryHandler.cs](src-backend/BeeZillion.Application/Practice/Queries/GetPracticeQuestions/GetPracticeQuestionsQueryHandler.cs#L22-L44))
 
 ```csharp
 var words = await _wordRepository.GetWordsForPracticeAsync(userId, limit: limit * 2);
@@ -43,7 +43,7 @@ var questions = BuildQuestions(words, modes, limit);
 
 **Key Decision:** Fetches `limit * 2` words because AI Sentence filtering happens in memory (some words may not have AI sentences)
 
-**3. Database Query** ([WordRepository.cs](src-backend/VocabApp.Infrastructure/Persistence/Repositories/WordRepository.cs#L77-L116))
+**3. Database Query** ([WordRepository.cs](src-backend/BeeZillion.Infrastructure/Persistence/Repositories/WordRepository.cs#L77-L116))
 
 Multi-level priority ordering with database-side optimization:
 
@@ -55,7 +55,7 @@ Multi-level priority ordering with database-side optimization:
 | 4th | `EaseFactor ASC` | Difficult words (low ease factor ≈ hard to remember) |
 | 5th | `NEWID()` | Random shuffle within same difficulty |
 
-**4. Question Building** ([GetPracticeQuestionsQueryHandler.cs](src-backend/VocabApp.Application/Practice/Queries/GetPracticeQuestions/GetPracticeQuestionsQueryHandler.cs#L64-L155))
+**4. Question Building** ([GetPracticeQuestionsQueryHandler.cs](src-backend/BeeZillion.Application/Practice/Queries/GetPracticeQuestions/GetPracticeQuestionsQueryHandler.cs#L64-L155))
 
 For each word:
 1. Select question mode (cycle through `modes` list)
@@ -69,7 +69,7 @@ For each word:
 | `spelling` | Word in chosen direction | Text input | Translation/Original |
 | `ai_sentence` | AI-generated sentence | AI grading | N/A (server validates) |
 
-**5. Multiple Choice Options** ([BuildOptions](src-backend/VocabApp.Application/Practice/Queries/GetPracticeQuestions/GetPracticeQuestionsQueryHandler.cs#L157-L167))
+**5. Multiple Choice Options** ([BuildOptions](src-backend/BeeZillion.Application/Practice/Queries/GetPracticeQuestions/GetPracticeQuestionsQueryHandler.cs#L157-L167))
 - Takes 3 random incorrect answers from word pool
 - Adds correct answer
 - Shuffles all 4 options randomly
@@ -115,7 +115,7 @@ GET /api/practice/questions?mode=multiple_choice,ai_sentence&limit=4
 
 ### A. Domain Model: Word Entity
 
-**Structure** ([Word.cs](src-backend/VocabApp.Domain/Aggregates/WordAggregate/Word.cs))
+**Structure** ([Word.cs](src-backend/BeeZillion.Domain/Aggregates/WordAggregate/Word.cs))
 
 ```csharp
 public sealed class Word : AggregateRoot<WordId>
@@ -134,7 +134,7 @@ public sealed class Word : AggregateRoot<WordId>
 
 ### B. Tracking Data: ReviewInfo Value Object
 
-**Structure** ([ReviewInfo.cs](src-backend/VocabApp.Domain/ValueObjects/ReviewInfo.cs))
+**Structure** ([ReviewInfo.cs](src-backend/BeeZillion.Domain/ValueObjects/ReviewInfo.cs))
 
 ```csharp
 public sealed record ReviewInfo(
@@ -157,7 +157,7 @@ LastReviewedAt: null (never)
 
 ### C. User-Level Tracking
 
-**Structure** ([User.cs](src-backend/VocabApp.Domain/Aggregates/UserAggregate/User.cs#L18-L27))
+**Structure** ([User.cs](src-backend/BeeZillion.Domain/Aggregates/UserAggregate/User.cs#L18-L27))
 
 ```csharp
 public sealed class User : AggregateRoot<UserId>
@@ -178,7 +178,7 @@ user.RecordReview(DateTime.UtcNow);
 
 ### D. Database Schema & Indexes
 
-**Word Table Indexes** ([WordConfiguration.cs](src-backend/VocabApp.Infrastructure/Persistence/Configurations/WordConfiguration.cs#L42-L45))
+**Word Table Indexes** ([WordConfiguration.cs](src-backend/BeeZillion.Infrastructure/Persistence/Configurations/WordConfiguration.cs#L42-L45))
 
 ```sql
 -- Composite indexes
@@ -202,7 +202,7 @@ CREATE INDEX IX_Word_OwnerId_NextReviewAt
 
 ### E. Persistence Configuration
 
-**Mapped as Owned Type** ([WordConfiguration.cs](src-backend/VocabApp.Infrastructure/Persistence/Configurations/WordConfiguration.cs#L43-L50))
+**Mapped as Owned Type** ([WordConfiguration.cs](src-backend/BeeZillion.Infrastructure/Persistence/Configurations/WordConfiguration.cs#L43-L50))
 
 ```csharp
 builder.OwnsOne(word => word.Review, review =>
@@ -235,7 +235,7 @@ The **SuperMemo-2 (SM-2)** algorithm is a spaced repetition algorithm that:
 
 ### Time-Aware Q-Score Calculation
 
-**Method:** `RecordReviewByQScore(bool isCorrect, long timeTakenMs)` ([Word.cs](src-backend/VocabApp.Domain/Aggregates/WordAggregate/Word.cs#L65-L76))
+**Method:** `RecordReviewByQScore(bool isCorrect, long timeTakenMs)` ([Word.cs](src-backend/BeeZillion.Domain/Aggregates/WordAggregate/Word.cs#L65-L76))
 
 Converts answer quality + response time → Q Score (0-5):
 
@@ -264,7 +264,7 @@ public static int CalculateQScore(bool isCorrect, long timeTakenMs)
 
 ### SM-2 Algorithm: NextReview Calculation
 
-**Implementation:** `CalculateNextReview(ReviewOutcome outcome, ReviewInfo current)` ([Word.cs](src-backend/VocabApp.Domain/Aggregates/WordAggregate/Word.cs#L81-L110))
+**Implementation:** `CalculateNextReview(ReviewOutcome outcome, ReviewInfo current)` ([Word.cs](src-backend/BeeZillion.Domain/Aggregates/WordAggregate/Word.cs#L81-L110))
 
 ```csharp
 // Outcome = QScoreToReviewOutcome(qScore)
@@ -310,7 +310,7 @@ nextReviewAt = DateTime.UtcNow.AddDays(intervalDays);
 
 ### AI Sentence Scoring
 
-For `ai_sentence` mode ([SubmitPracticeAnswerCommandHandler.cs](src-backend/VocabApp.Application/Practice/Commands/SubmitPracticeAnswer/SubmitPracticeAnswerCommandHandler.cs#L65-L81)):
+For `ai_sentence` mode ([SubmitPracticeAnswerCommandHandler.cs](src-backend/BeeZillion.Application/Practice/Commands/SubmitPracticeAnswer/SubmitPracticeAnswerCommandHandler.cs#L65-L81)):
 
 ```csharp
 if (string.Equals(request.Type, "ai_sentence"))
@@ -339,19 +339,19 @@ if (string.Equals(request.Type, "ai_sentence"))
 ### Clean Architecture Layers
 
 ```
-VocabApp.API (Presentation)
+BeeZillion.API (Presentation)
     ↓ (HTTP/Controllers)
-VocabApp.Application (Use Cases)
+BeeZillion.Application (Use Cases)
     ↓ (Commands/Queries via MediatR)
-VocabApp.Domain (Business Rules)
+BeeZillion.Domain (Business Rules)
     ↓ (Aggregates/Value Objects)
-VocabApp.Infrastructure (Framework/Database)
+BeeZillion.Infrastructure (Framework/Database)
     └─ EF Core, Repositories, External Services
 ```
 
 ### MediatR Command/Query Pipeline
 
-**Handler Registration** ([Application/DependencyInjection.cs](src-backend/VocabApp.Application/DependencyInjection.cs))
+**Handler Registration** ([Application/DependencyInjection.cs](src-backend/BeeZillion.Application/DependencyInjection.cs))
 
 ```csharp
 services.AddMediatR(typeof(DependencyInjection).Assembly);
@@ -390,7 +390,7 @@ Response: PracticeQuestionsResponse
 
 ### Dependency Injection Setup
 
-**Infrastructure DI** ([Infrastructure/DependencyInjection.cs](src-backend/VocabApp.Infrastructure/DependencyInjection.cs#L76-L86))
+**Infrastructure DI** ([Infrastructure/DependencyInjection.cs](src-backend/BeeZillion.Infrastructure/DependencyInjection.cs#L76-L86))
 
 ```csharp
 // Database
@@ -755,7 +755,7 @@ var poorWords = await _statsRepository.GetWordsWithSuccessRateBelowAsync(userId,
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    VocabApp.API Layer                       │
+│                    BeeZillion.API Layer                       │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │  PracticeController: /api/practice/questions        │  │
 │  │  ├─ GET questions?mode=X&limit=N                    │  │
@@ -765,7 +765,7 @@ var poorWords = await _statsRepository.GetWordsWithSuccessRateBelowAsync(userId,
 └─────────────────────────────────────────────────────────────┘
                            ↓ MediatR
 ┌─────────────────────────────────────────────────────────────┐
-│                 VocabApp.Application Layer                  │
+│                 BeeZillion.Application Layer                  │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │  MediatR Pipeline:                                   │  │
 │  │  1. LoggingBehavior                                  │  │
@@ -785,7 +785,7 @@ var poorWords = await _statsRepository.GetWordsWithSuccessRateBelowAsync(userId,
 └─────────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                    VocabApp.Domain Layer                    │
+│                    BeeZillion.Domain Layer                    │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │  Aggregates:                                         │  │
 │  │  ├─ Word (Root)                                      │  │
@@ -808,7 +808,7 @@ var poorWords = await _statsRepository.GetWordsWithSuccessRateBelowAsync(userId,
 └─────────────────────────────────────────────────────────────┘
                            ↓ EF Core
 ┌─────────────────────────────────────────────────────────────┐
-│              VocabApp.Infrastructure Layer                  │
+│              BeeZillion.Infrastructure Layer                  │
 │  ┌──────────────────────────────────────────────────────┐  │
 │  │  Persistence:                                        │  │
 │  │  ├─ AppDbContext (SQL Server)                       │  │
@@ -900,3 +900,4 @@ var poorWords = await _statsRepository.GetWordsWithSuccessRateBelowAsync(userId,
 1. ML-based word difficulty prediction
 2. Custom spaced repetition curves per user
 3. Recommendation engine for optimal practice times
+

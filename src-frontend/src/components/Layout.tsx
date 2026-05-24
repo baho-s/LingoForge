@@ -32,7 +32,7 @@ export default function Layout() {
   const sidebar = (
     <div className="flex flex-col h-full">
       <div className="px-6 py-6">
-        <h1 className="text-xl font-bold text-gray-900 tracking-tight">VocabApp</h1>
+        <h1 className="text-xl font-bold text-gray-900 tracking-tight">BeeZillion</h1>
         <p className="text-xs text-gray-400 mt-1">{t('common.home')}'ını geliştir</p>
       </div>
       <nav className="flex-1 px-3 space-y-1">
@@ -84,7 +84,7 @@ export default function Layout() {
           <button onClick={() => setSidebarOpen(true)} className="p-1 text-gray-600">
             {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
-          <h1 className="text-lg font-bold text-gray-900">VocabApp</h1>
+          <h1 className="text-lg font-bold text-gray-900">BeeZillion</h1>
         </header>
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           <Outlet />
@@ -93,3 +93,4 @@ export default function Layout() {
     </div>
   );
 }
+

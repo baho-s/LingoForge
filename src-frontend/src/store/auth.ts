@@ -7,7 +7,7 @@ interface AuthState {
   logout: () => void;
 }
 
-const TOKEN_KEY = 'vocabapp_token';
+const TOKEN_KEY = 'beezillion_token';
 
 const normalizeToken = (raw: string | null) => {
   if (!raw || raw === 'undefined' || raw === 'null') return null;
@@ -34,3 +34,4 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token: null, isAuthenticated: false });
   },
 }));
+

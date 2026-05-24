@@ -1,6 +1,6 @@
-# VocabApp Veritabanı SQL Script
+# BeeZillion Veritabanı SQL Script
 
-Bu dosya VocabApp projesi için SQL Server'da veritabanını kurmak için gerekli tüm DDL ve DML komutlarını içerir.
+Bu dosya BeeZillion projesi için SQL Server'da veritabanını kurmak için gerekli tüm DDL ve DML komutlarını içerir.
 
 ---
 
@@ -151,7 +151,7 @@ Aşağıdaki script'i SQL Server Management Studio'da çalıştırarak tüm tabl
 
 ```sql
 -- Veritabanı seçimi
-USE [VocabAppDb];
+USE [BeeZillionDb];
 
 -- Users Tablosu
 CREATE TABLE [dbo].[Users] (
@@ -321,7 +321,7 @@ PRINT 'Tüm tablolar silindi!';
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=YOUR_SERVER;Database=VocabAppDb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=true;"
+    "DefaultConnection": "Server=YOUR_SERVER;Database=BeeZillionDb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=true;"
   }
 }
 ```
@@ -333,3 +333,4 @@ PRINT 'Tüm tablolar silindi!';
 - DateTime'lar UTC formatında tutulacaktır
 - Foreign Key'ler CASCADE DELETE ile konfigüre edilmiştir
 - Indexler sorgu performansını optimize etmek için oluşturulmuştur
+

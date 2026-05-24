@@ -1,0 +1,7 @@
+@BeeZillion.API_HostAddress = http://localhost:5223
+
+GET {{BeeZillion.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+

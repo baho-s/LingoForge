@@ -1,0 +1,48 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src-backend", "src-backend", "{B7D8B5E6-152C-425D-9824-FBDC572DE499}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeeZillion.API", "src-backend\BeeZillion.API\BeeZillion.API.csproj", "{2B793E08-CF18-4E70-BA86-EF671159F26D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeeZillion.Application", "src-backend\BeeZillion.Application\BeeZillion.Application.csproj", "{C9E7630F-0813-4503-9F4D-87E1866BECD3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeeZillion.Domain", "src-backend\BeeZillion.Domain\BeeZillion.Domain.csproj", "{13C50C5A-ED58-4FD8-B32C-617D6A3DB0FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BeeZillion.Infrastructure", "src-backend\BeeZillion.Infrastructure\BeeZillion.Infrastructure.csproj", "{8E6D7593-EF14-47B1-A123-000C172B3F63}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2B793E08-CF18-4E70-BA86-EF671159F26D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B793E08-CF18-4E70-BA86-EF671159F26D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B793E08-CF18-4E70-BA86-EF671159F26D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B793E08-CF18-4E70-BA86-EF671159F26D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9E7630F-0813-4503-9F4D-87E1866BECD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9E7630F-0813-4503-9F4D-87E1866BECD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9E7630F-0813-4503-9F4D-87E1866BECD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9E7630F-0813-4503-9F4D-87E1866BECD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13C50C5A-ED58-4FD8-B32C-617D6A3DB0FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13C50C5A-ED58-4FD8-B32C-617D6A3DB0FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13C50C5A-ED58-4FD8-B32C-617D6A3DB0FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13C50C5A-ED58-4FD8-B32C-617D6A3DB0FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E6D7593-EF14-47B1-A123-000C172B3F63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E6D7593-EF14-47B1-A123-000C172B3F63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E6D7593-EF14-47B1-A123-000C172B3F63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E6D7593-EF14-47B1-A123-000C172B3F63}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{2B793E08-CF18-4E70-BA86-EF671159F26D} = {B7D8B5E6-152C-425D-9824-FBDC572DE499}
+		{C9E7630F-0813-4503-9F4D-87E1866BECD3} = {B7D8B5E6-152C-425D-9824-FBDC572DE499}
+		{13C50C5A-ED58-4FD8-B32C-617D6A3DB0FF} = {B7D8B5E6-152C-425D-9824-FBDC572DE499}
+		{8E6D7593-EF14-47B1-A123-000C172B3F63} = {B7D8B5E6-152C-425D-9824-FBDC572DE499}
+	EndGlobalSection
+EndGlobal
+

@@ -167,7 +167,7 @@ public async Task<ActionResult<IReadOnlyList<QuizWordDto>>> Get(
 
 ### Adım 2: Handler'lar Oluştur
 ```csharp
-namespace VocabApp.Application.Practice.Queries;
+namespace BeeZillion.Application.Practice.Queries;
 
 public sealed class GetPracticeQuestionsQueryHandler 
     : IRequestHandler<GetPracticeQuestionsQuery, PracticeQuestionsResponse>
@@ -260,3 +260,4 @@ public sealed class PracticeController : ControllerBase
 4. ❌ DDD separation of concerns'i ihlal eder
 
 **Refactor edilmesi şiddetle önerilir.**
+

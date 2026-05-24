@@ -5,7 +5,7 @@
 ### 1. **Application Layer - Practice Namespace Oluşturuldu**
 
 ```
-VocabApp.Application/Practice/
+BeeZillion.Application/Practice/
 ├── Queries/
 │   └── GetPracticeQuestions/
 │       ├── GetPracticeQuestionsQuery.cs
@@ -187,3 +187,4 @@ return Ok(result);
 ✅ `dotnet build` - Başarılı
 
 Tüm yeni Handler'lar MediatR tarafından otomatik olarak DependencyInjection'a registered edildi.
+
