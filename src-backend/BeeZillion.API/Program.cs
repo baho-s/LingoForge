@@ -12,7 +12,7 @@ builder.Services.AddCors(options =>
         policy =>
         {
             policy.WithOrigins(
-                "https://lingo-forge-iota.vercel.app", // Canlı linkin dursun
+                "https://beezillion-iota.vercel.app", // Canlı linkin dursun
                 "http://localhost:5173"                   // VİRGÜL KOYUP BUNU EKLE (Vite'ın varsayılan portu)
             ) 
                   .AllowAnyHeader()

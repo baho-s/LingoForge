@@ -33,7 +33,7 @@ export default function Layout() {
     <div className="flex flex-col h-full">
       <div className="px-6 py-6">
         <h1 className="text-xl font-bold text-gray-900 tracking-tight">BeeZillion</h1>
-        <p className="text-xs text-gray-400 mt-1">{t('common.home')}'ını geliştir</p>
+        <p className="text-xs text-gray-400 mt-1">{t('common.improveEnglish')}</p>
       </div>
       <nav className="flex-1 px-3 space-y-1">
         {navItems.map((item) => (
