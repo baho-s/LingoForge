@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Search, Plus, Sparkles, X, Loader2, ArrowUpDown, AlertTriangle, BookOpen, Trash2 } from 'lucide-react';
 import { wordsApi } from '../api/endpoints';
 import { useToast } from '../components/Toast';
+import WordAddModal, { type WordAddSuccessResult } from '../components/WordAddModal';
 import FieldImportModal from '../components/FieldImportModal';
 import type { WordDto } from '../types';
 import { SkeletonCard } from '../components/Skeleton';
@@ -28,10 +29,6 @@ export default function Words() {
 
   // Add word modal
   const [showAdd, setShowAdd] = useState(false);
-  const [addOriginal, setAddOriginal] = useState('');
-  const [addTranslation, setAddTranslation] = useState('');
-  const [addAiSentence, setAddAiSentence] = useState(true);
-  const [adding, setAdding] = useState(false);
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<WordDto | null>(null);
@@ -202,26 +199,17 @@ export default function Words() {
     }
   };
 
-  const handleAdd = async () => {
-    if (!addOriginal.trim() || !addTranslation.trim()) return;
-    setAdding(true);
-    try {
-      await wordsApi.add({
-        original: addOriginal.trim(),
-        translation: addTranslation.trim(),
-        generateSentenceImmediately: addAiSentence,
-      });
-      setShowAdd(false);
-      setAddOriginal('');
-      setAddTranslation('');
-      setAddAiSentence(true);
-      await fetchWords();
+  const handleWordAddSuccess = async (result: WordAddSuccessResult) => {
+    await fetchWords();
+
+    if (result.mode === 'single') {
       addToast(t('words.addWordSuccess'), 'success');
-    } catch {
-      addToast(t('common.error'), 'error');
-    } finally {
-      setAdding(false);
+      return;
     }
+
+    const skippedPart = result.skippedLineCount ? `, ${result.skippedLineCount} satır atlandı` : '';
+    const sentencePart = result.generatedSentenceCount ? `, ${result.generatedSentenceCount} AI cümlesi üretildi` : '';
+    addToast(`${result.createdCount} kelime başarıyla eklendi${sentencePart}${skippedPart}.`, 'success');
   };
 
   const handleBulkGenerate = async () => {
@@ -489,57 +477,12 @@ export default function Words() {
         </div>
       )}
 
-      {/* Add Word Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="fixed inset-0 bg-black/30" onClick={() => setShowAdd(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">{t('words.addNewWord')}</h3>
-              <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('words.english')}</label>
-              <input
-                type="text"
-                value={addOriginal}
-                onChange={(e) => setAddOriginal(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="örn. serendipity"
-                autoFocus
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('words.translation')}</label>
-              <input
-                type="text"
-                value={addTranslation}
-                onChange={(e) => setAddTranslation(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="örn. tesadüfi iyi şans"
-              />
-            </div>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={addAiSentence}
-                onChange={(e) => setAddAiSentence(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">AI Cümlesi Oluştur</span>
-            </label>
-            <button
-              onClick={handleAdd}
-              disabled={adding || !addOriginal.trim() || !addTranslation.trim()}
-              className="w-full py-3 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              {adding ? 'Ekleniyor...' : t('words.addWord')}
-            </button>
-          </div>
-        </div>
-      )}
+      <WordAddModal
+        isOpen={showAdd}
+        onClose={() => setShowAdd(false)}
+        onSuccess={handleWordAddSuccess}
+        onError={(msg) => addToast(msg, 'error')}
+      />
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (

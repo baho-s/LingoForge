@@ -1,14 +1,14 @@
 using MediatR;
 using BeeZillion.Application.Common.Exceptions;
 using BeeZillion.Application.Common.Interfaces;
-using BeeZillion.Application.Words.Dtos;
 using BeeZillion.Domain.Aggregates.WordAggregate;
 using BeeZillion.Domain.Enums;
 using BeeZillion.Domain.Repositories;
 
-namespace BeeZillion.Application.Words.Commands.CreateWord;
+namespace BeeZillion.Application.Words.Commands.BulkCreateWords;
 
-public sealed class CreateWordCommandHandler : IRequestHandler<CreateWordCommand, WordDto>
+public sealed class BulkCreateWordsCommandHandler
+    : IRequestHandler<BulkCreateWordsCommand, BulkCreateWordsResult>
 {
     private readonly IWordRepository _wordRepository;
     private readonly IUserRepository _userRepository;
@@ -16,7 +16,7 @@ public sealed class CreateWordCommandHandler : IRequestHandler<CreateWordCommand
     private readonly ICurrentUserService _currentUser;
     private readonly IAiSentenceService _aiSentenceService;
 
-    public CreateWordCommandHandler(
+    public BulkCreateWordsCommandHandler(
         IWordRepository wordRepository,
         IUserRepository userRepository,
         IUnitOfWork unitOfWork,
@@ -30,7 +30,7 @@ public sealed class CreateWordCommandHandler : IRequestHandler<CreateWordCommand
         _aiSentenceService = aiSentenceService;
     }
 
-    public async Task<WordDto> Handle(CreateWordCommand request, CancellationToken cancellationToken)
+    public async Task<BulkCreateWordsResult> Handle(BulkCreateWordsCommand request, CancellationToken cancellationToken)
     {
         var userId = _currentUser.GetUserId();
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
@@ -40,29 +40,32 @@ public sealed class CreateWordCommandHandler : IRequestHandler<CreateWordCommand
         }
 
         var hasExistingWords = await _wordRepository.GetTotalCountByOwnerAsync(userId, cancellationToken) > 0;
-        var word = Word.Create(userId, request.Original, request.Translation);
-        var userUpdated = false;
+        var createdCount = 0;
+        var generatedSentenceCount = 0;
 
-        if (!hasExistingWords)
+        foreach (var item in request.Items)
+        {
+            var word = Word.Create(userId, item.Original, item.Translation);
+
+            if (request.GenerateSentenceImmediately)
+            {
+                var sentence = await _aiSentenceService.GenerateSentenceAsync(word.Original, cancellationToken);
+                word.AttachAiSentence(sentence);
+                generatedSentenceCount += 1;
+            }
+
+            _wordRepository.Add(word);
+            createdCount += 1;
+        }
+
+        if (!hasExistingWords && createdCount > 0)
         {
             user.AwardBadge(BadgeType.FirstWord);
-            userUpdated = true;
-        }
-
-        if (request.GenerateSentenceImmediately)
-        {
-            var sentence = await _aiSentenceService.GenerateSentenceAsync(word.Original, cancellationToken);
-            word.AttachAiSentence(sentence);
-        }
-
-        _wordRepository.Add(word);
-        if (userUpdated)
-        {
             _userRepository.Update(user);
         }
+
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return WordDto.FromEntity(word);
+        return new BulkCreateWordsResult(createdCount, generatedSentenceCount);
     }
 }
-

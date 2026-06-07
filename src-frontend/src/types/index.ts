@@ -37,6 +37,21 @@ export interface AddWordPayload {
   generateSentenceImmediately: boolean;
 }
 
+export interface BulkCreateWordItemPayload {
+  original: string;
+  translation: string;
+}
+
+export interface BulkCreateWordsPayload {
+  items: BulkCreateWordItemPayload[];
+  generateSentenceImmediately: boolean;
+}
+
+export interface BulkCreateWordsResult {
+  createdCount: number;
+  generatedSentenceCount: number;
+}
+
 export interface ReviewPayload {
   outcome: ReviewOutcome;
 }

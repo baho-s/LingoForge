@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BeeZillion.Application.Words.Commands.BulkCreateWords;
 using BeeZillion.Application.Words.Commands.BulkGenerate;
 using BeeZillion.Application.Words.Commands.BulkDeleteByField;
 using BeeZillion.Application.Words.Commands.CreateWord;
@@ -55,6 +56,15 @@ public sealed class WordsController : ControllerBase
 
     [HttpPost]
     public async Task<ActionResult<WordDto>> Create(CreateWordCommand command, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("bulk")]
+    public async Task<ActionResult<BulkCreateWordsResult>> BulkCreate(
+        [FromBody] BulkCreateWordsCommand command,
+        CancellationToken cancellationToken)
     {
         var result = await _sender.Send(command, cancellationToken);
         return Ok(result);

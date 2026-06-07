@@ -8,6 +8,8 @@ import type {
   StatsDto,
   BulkGenerateResult,
   AddWordPayload,
+  BulkCreateWordsPayload,
+  BulkCreateWordsResult,
   ReviewPayload,
   PracticeQuestionsResponse,
   PracticeAnswerPayload,
@@ -33,6 +35,8 @@ export const wordsApi = {
   getReviewSessionWords: (limit: number = 8, includeAll: boolean = false) =>
     client.get<WordDto[]>('/api/words/review/session', { params: { limit, include_all: includeAll } }),
   add: (payload: AddWordPayload) => client.post<WordDto>('/api/words', payload),
+  bulkAdd: (payload: BulkCreateWordsPayload) =>
+    client.post<BulkCreateWordsResult>('/api/words/bulk', payload),
   bulkGenerate: () => client.post<BulkGenerateResult>('/api/words/bulk-generate'),
   review: (id: string, payload: ReviewPayload) =>
     client.post<WordDto>(`/api/words/${id}/review`, payload),
