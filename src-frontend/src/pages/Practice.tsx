@@ -391,17 +391,24 @@ export default function Practice() {
         >
           <div
             className="relative w-full transition-transform duration-500"
-            style={{ transformStyle: 'preserve-3d', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
+            style={{
+              transformStyle: 'preserve-3d',
+              WebkitTransformStyle: 'preserve-3d',
+              transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+            }}
           >
             {/* Front */}
-            <div className="bg-white rounded-2xl shadow-md p-12 border border-gray-100 text-center" style={{ backfaceVisibility: 'hidden' }}>
+            <div
+              className="bg-white rounded-2xl shadow-md p-12 border border-gray-100 text-center"
+              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(0deg)' }}
+            >
               <p className="text-3xl font-bold text-gray-900">{word.original}</p>
               <p className="text-sm text-gray-400 mt-3">{t('practice.clickToReveal')}</p>
             </div>
             {/* Back */}
             <div
               className="absolute inset-0 bg-white rounded-2xl shadow-md p-12 border border-gray-100 text-center"
-              style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
             >
               <p className="text-2xl font-bold text-gray-900 mb-2">{word.translation}</p>
               {word.aiSentence && (
