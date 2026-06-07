@@ -11,6 +11,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 type Mode = 'select' | 'review' | 'practice';
 
+const REVIEW_SESSION_LIMIT = 8;
+
 export default function Practice() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ export default function Practice() {
     setError('');
     setReviewComplete(false);
     try {
-      const { data } = await wordsApi.getReviewSessionWords(8, includeAll);
+      const { data } = await wordsApi.getReviewSessionWords(REVIEW_SESSION_LIMIT, includeAll);
       if (data.length === 0) {
         // Eğer includeAll true idi ve hala 0 ise: hiç kelime yok
         if (includeAll) {
@@ -279,7 +281,7 @@ export default function Practice() {
               <Brain size={24} className="text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">Tekrar Oturumu</h3>
-            <p className="text-sm text-gray-500">Bugün tekrar için hazır olan kelimeleri kartlarla tekrar et</p>
+              <p className="text-sm text-gray-500">Bugün tekrar için hazır olan kelimeleri kartlarla tekrar et</p>
           </button>
           <button
             onClick={() => startPractice('multiple_choice')}

@@ -174,6 +174,7 @@ export interface StatsDto {
   accuracyRate: number;
   averageTimeTakenMs: number;
   correctAttemptsThisWeek: number;
+  todayReviewedWords: number;
   todayAttempts: number;
   todayCorrectAttempts: number;
   activityHeatmap: ActivityHeatmapDay[];

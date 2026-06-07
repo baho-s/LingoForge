@@ -1,5 +1,6 @@
 using MediatR;
 using BeeZillion.Application.Common.Interfaces;
+using BeeZillion.Domain.Enums;
 using BeeZillion.Domain.Repositories;
 
 namespace BeeZillion.Application.Users.Queries.GetStats;
@@ -63,11 +64,12 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
             : 0L;
 
         var reviewHistory = await _reviewHistoryRepository.GetByUserAsync(userId, cancellationToken);
-        var correctAttemptsThisWeek = reviewHistory.Count(history => history.ReviewedAt >= oneWeekAgo && history.IsCorrect);
+        var correctAttemptsThisWeek = reviewHistory.Count(history => history.ReviewedAt >= oneWeekAgo && history.IsCorrect && history.Source == ReviewSource.Practice);
 
         var todayStart = now.Date;
-        var todayAttempts = reviewHistory.Count(history => history.ReviewedAt >= todayStart);
-        var todayCorrectAttempts = reviewHistory.Count(history => history.ReviewedAt >= todayStart && history.IsCorrect);
+        var todayReviewedWords = reviewHistory.Count(history => history.ReviewedAt >= todayStart && history.Source == ReviewSource.ReviewSession);
+        var todayAttempts = reviewHistory.Count(history => history.ReviewedAt >= todayStart && history.Source == ReviewSource.Practice);
+        var todayCorrectAttempts = reviewHistory.Count(history => history.ReviewedAt >= todayStart && history.Source == ReviewSource.Practice && history.IsCorrect);
         
         var activityCounts = new Dictionary<DateOnly, int>();
         for (var i = 0; i < 365; i++)
@@ -102,6 +104,7 @@ public sealed class GetStatsQueryHandler : IRequestHandler<GetStatsQuery, StatsD
             accuracyRate,
             averageTimeTakenMs,
             correctAttemptsThisWeek,
+            todayReviewedWords,
             todayAttempts,
             todayCorrectAttempts,
             activityHeatmap);

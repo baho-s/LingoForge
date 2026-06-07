@@ -56,6 +56,7 @@ export default function Stats() {
             <h3 className="text-lg font-semibold text-gray-900">{t('stats.todaySummary')}</h3>
           </div>
           {(() => {
+            const todayReviewedWords = stats.todayReviewedWords ?? 0;
             const todayAttempts = stats.todayAttempts ?? 0;
             const todayCorrect = stats.todayCorrectAttempts ?? 0;
             const todayIncorrect = Math.max(0, todayAttempts - todayCorrect);
@@ -65,7 +66,7 @@ export default function Stats() {
             return (
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>{t('stats.todayAttempts')}: {todayAttempts}</span>
+                  <span>{t('stats.todayReviewed')}: {todayReviewedWords}</span>
                   <span>{t('stats.todayCorrect')}: {todayCorrect}</span>
                   <span>{t('stats.todayIncorrect')}: {todayIncorrect}</span>
                 </div>
