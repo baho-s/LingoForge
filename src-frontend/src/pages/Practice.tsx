@@ -22,6 +22,7 @@ export default function Practice() {
   const [reviewWords, setReviewWords] = useState<WordDto[]>([]);
   const [reviewIndex, setReviewIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewComplete, setReviewComplete] = useState(false);
   const [reviewedCount, setReviewedCount] = useState(0);
@@ -229,6 +230,15 @@ export default function Practice() {
     }
   }, [practiceIndex, mode, practiceQuestions.length]);
 
+  // Show translation after 500ms delay when review card changes, and auto-close card
+  useEffect(() => {
+    if (mode !== 'review') return;
+    setFlipped(false);
+    setShowTranslation(false);
+    const timer = setTimeout(() => setShowTranslation(true), 500);
+    return () => clearTimeout(timer);
+  }, [reviewIndex, mode]);
+
   // Keyboard shortcuts for review
   useEffect(() => {
     if (mode !== 'review' || !flipped) return;
@@ -405,16 +415,24 @@ export default function Practice() {
               <p className="text-3xl font-bold text-gray-900">{word.original}</p>
               <p className="text-sm text-gray-400 mt-3">{t('practice.clickToReveal')}</p>
             </div>
-            {/* Back */}
-            <div
-              className="absolute inset-0 bg-white rounded-2xl shadow-md p-12 border border-gray-100 text-center"
-              style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-            >
-              <p className="text-2xl font-bold text-gray-900 mb-2">{word.translation}</p>
-              {word.aiSentence && (
-                <p className="text-sm text-gray-500 italic">"{word.aiSentence}"</p>
-              )}
-            </div>
+            {/* Back - Only render if translation is ready to show */}
+            {showTranslation && (
+              <div
+                className="absolute inset-0 bg-white rounded-2xl shadow-md p-12 border border-gray-100 text-center"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'rotateY(180deg)',
+                  opacity: 1,
+                  transition: 'opacity 500ms ease-in-out'
+                }}
+              >
+                <p className="text-2xl font-bold text-gray-900 mb-2">{word.translation}</p>
+                {word.aiSentence && (
+                  <p className="text-sm text-gray-500 italic">"{word.aiSentence}"</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
