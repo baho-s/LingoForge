@@ -3,6 +3,10 @@ namespace BeeZillion.Application.Common.Interfaces;
 public interface IAiSentenceService
 {
     Task<string> GenerateSentenceAsync(string word, CancellationToken ct = default);
+    Task<string> TranslateWordInSentenceAsync(
+        string englishSentence,
+        string word,
+        CancellationToken ct = default);
     Task<AiEvaluationResult> EvaluateTranslationAsync(
         string englishSentence,
         string userTranslation,
@@ -10,4 +14,3 @@ public interface IAiSentenceService
 }
 
 public sealed record AiEvaluationResult(int Score, string Feedback, string? CorrectTranslation);
-

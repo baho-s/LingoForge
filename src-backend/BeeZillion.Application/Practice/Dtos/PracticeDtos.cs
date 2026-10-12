@@ -20,9 +20,12 @@ public sealed record GeneratedSentenceResponse(
     [property: JsonPropertyName("english_sentence")] string EnglishSentence,
     [property: JsonPropertyName("target_words_used")] IReadOnlyList<string> TargetWordsUsed);
 
+public sealed record SentenceWordHintResponse(
+    [property: JsonPropertyName("term")] string Term,
+    [property: JsonPropertyName("translation")] string Translation);
+
 public sealed record PracticeAnswerResponse(
     [property: JsonPropertyName("is_correct")] bool IsCorrect,
     [property: JsonPropertyName("accuracy_score")] int? AccuracyScore,
     [property: JsonPropertyName("feedback")] string? Feedback,
     [property: JsonPropertyName("correct_answer")] string? CorrectAnswer);
-

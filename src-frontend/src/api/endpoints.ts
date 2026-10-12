@@ -16,6 +16,8 @@ import type {
   PracticeAnswerResponse,
   GenerateSentencePayload,
   GeneratedSentenceResponse,
+  SentenceWordHintRequest,
+  SentenceWordHintResponse,
 } from '../types';
 import type { PracticeMode } from '../types';
 
@@ -60,6 +62,8 @@ export const practiceApi = {
     }),
   generateSentence: (payload: GenerateSentencePayload) =>
     client.post<GeneratedSentenceResponse>('/api/practice/generate-sentence', payload),
+  getSentenceWordHint: (payload: SentenceWordHintRequest) =>
+    client.post<SentenceWordHintResponse>('/api/practice/sentence-hint', payload),
   submitAnswer: (payload: PracticeAnswerPayload) =>
     client.post<PracticeAnswerResponse>('/api/practice/submit-answer', payload),
 };

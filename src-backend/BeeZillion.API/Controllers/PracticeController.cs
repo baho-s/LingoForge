@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
 using BeeZillion.Application.Practice.Commands.GenerateSentence;
+using BeeZillion.Application.Practice.Commands.GetSentenceWordHint;
 using BeeZillion.Application.Practice.Commands.SubmitPracticeAnswer;
 using BeeZillion.Application.Practice.Dtos;
 using BeeZillion.Application.Practice.Queries.GetPracticeQuestions;
@@ -44,6 +45,17 @@ public sealed class PracticeController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("sentence-hint")]
+    public async Task<ActionResult<SentenceWordHintResponse>> GetSentenceWordHint(
+        [FromBody] SentenceWordHintRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _sender.Send(
+            new GetSentenceWordHintCommand(request.QuestionId, request.Term),
+            cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("submit-answer")]
     public async Task<ActionResult<PracticeAnswerResponse>> SubmitAnswer(
         [FromBody] PracticeAnswerRequest request,
@@ -63,6 +75,10 @@ public sealed class PracticeController : ControllerBase
     public sealed record GenerateSentenceRequest(
         [property: JsonPropertyName("target_vocab")] IReadOnlyList<string> TargetVocab);
 
+    public sealed record SentenceWordHintRequest(
+        [property: JsonPropertyName("question_id")] string QuestionId,
+        [property: JsonPropertyName("term")] string Term);
+
     public sealed record PracticeAnswerRequest(
         [property: JsonPropertyName("question_id")] string QuestionId,
         [property: JsonPropertyName("type")] string Type,
@@ -70,4 +86,3 @@ public sealed class PracticeController : ControllerBase
         [property: JsonPropertyName("direction")] string? Direction,
         [property: JsonPropertyName("time_taken_ms")] long TimeTakenMs = 0);
 }
-

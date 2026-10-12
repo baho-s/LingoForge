@@ -1,10 +1,16 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Brain, ArrowLeft, Loader2, AlertCircle, ListChecks, PenSquare, Sparkles } from 'lucide-react';
 import { wordsApi, practiceApi } from '../api/endpoints';
 import { useToast } from '../components/Toast';
-import type { WordDto, PracticeQuestion, PracticeMode, PracticeAnswerResponse } from '../types';
+import type {
+  WordDto,
+  PracticeQuestion,
+  PracticeMode,
+  PracticeAnswerResponse,
+  PracticeAiSentenceQuestion,
+} from '../types';
 import { ReviewOutcome } from '../types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12,6 +18,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 type Mode = 'select' | 'review' | 'practice';
 
 const REVIEW_SESSION_LIMIT = 8;
+const ENGLISH_WORD_SPLIT_PATTERN = /([A-Za-z]+(?:['’-][A-Za-z]+)*)/g;
+const ENGLISH_WORD_PATTERN = /^[A-Za-z]+(?:['’-][A-Za-z]+)*$/;
 
 export default function Practice() {
   const { t } = useTranslation();
@@ -39,6 +47,15 @@ export default function Practice() {
   const [practiceBusy, setPracticeBusy] = useState(false);
   const [practiceCorrectCount, setPracticeCorrectCount] = useState(0);
   const [questionStartTime, setQuestionStartTime] = useState<number | null>(null);
+  const [sentenceHint, setSentenceHint] = useState<{
+    term: string;
+    translation?: string;
+    loading: boolean;
+    error?: string;
+  } | null>(null);
+  const sentenceHintCache = useRef(new Map<string, string>());
+  const sentenceHintRequests = useRef(new Map<string, Promise<string>>());
+  const sentenceHintRequestId = useRef(0);
 
   const [error, setError] = useState('');
   const { addToast } = useToast();
@@ -79,6 +96,48 @@ export default function Practice() {
     setPracticeSubmitted(false);
     setPracticeFeedback(null);
     setPracticeBusy(false);
+    setSentenceHint(null);
+    sentenceHintRequestId.current += 1;
+  };
+
+  const handleSentenceWordClick = async (
+    question: PracticeAiSentenceQuestion,
+    term: string,
+  ) => {
+    const cacheKey = `${question.id}:${question.english_sentence}:${term.trim().toLowerCase().replace(/\s+/g, ' ')}`;
+    const cachedTranslation = sentenceHintCache.current.get(cacheKey);
+    const requestId = ++sentenceHintRequestId.current;
+
+    if (cachedTranslation) {
+      setSentenceHint({ term, translation: cachedTranslation, loading: false });
+      return;
+    }
+
+    setSentenceHint({ term, loading: true });
+    try {
+      let hintRequest = sentenceHintRequests.current.get(cacheKey);
+      if (!hintRequest) {
+        hintRequest = practiceApi.getSentenceWordHint({
+          question_id: question.id,
+          term,
+        }).then(({ data }) => {
+          sentenceHintCache.current.set(cacheKey, data.translation);
+          return data.translation;
+        }).finally(() => {
+          sentenceHintRequests.current.delete(cacheKey);
+        });
+        sentenceHintRequests.current.set(cacheKey, hintRequest);
+      }
+
+      const translation = await hintRequest;
+      if (requestId === sentenceHintRequestId.current) {
+        setSentenceHint({ term, translation, loading: false });
+      }
+    } catch {
+      if (requestId === sentenceHintRequestId.current) {
+        setSentenceHint({ term, loading: false, error: t('practice.wordHint.error') });
+      }
+    }
   };
 
   const getPracticeModeLabel = (m: PracticeMode) => {
@@ -107,6 +166,7 @@ export default function Practice() {
         return;
       }
       setPracticeQuestions(data.questions);
+      sentenceHintCache.current.clear();
       setPracticeIndex(0);
       setPracticeCorrectCount(0);
       setQuestionStartTime(Date.now());
@@ -524,8 +584,36 @@ export default function Practice() {
               {question.type === 'ai_sentence' ? (
                 <>
                   <p className="text-xl font-semibold text-gray-900 leading-relaxed">
-                    {question.english_sentence || question.prompt || ''}
+                    {(question.english_sentence || question.prompt || '')
+                      .split(ENGLISH_WORD_SPLIT_PATTERN)
+                      .filter(Boolean)
+                      .map((part, index) => (
+                        ENGLISH_WORD_PATTERN.test(part) ? (
+                          <button
+                            key={`${index}-${part}`}
+                            type="button"
+                            onClick={() => handleSentenceWordClick(question, part)}
+                            aria-label={`${t('practice.wordHint.show')}: ${part}`}
+                            aria-pressed={sentenceHint?.term === part}
+                            className={`rounded-sm underline decoration-dotted underline-offset-4 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                              sentenceHint?.term === part ? 'text-blue-700' : ''
+                            }`}
+                          >
+                            {part}
+                          </button>
+                        ) : (
+                          <span key={`${index}-${part}`}>{part}</span>
+                        )
+                      ))}
                   </p>
+                  {sentenceHint && (
+                    <p aria-live="polite" className="mt-3 min-h-5 text-sm text-blue-700">
+                      <span className="font-medium">{sentenceHint.term}:</span>{' '}
+                      {sentenceHint.loading
+                        ? t('practice.wordHint.loading')
+                        : sentenceHint.translation ?? sentenceHint.error}
+                    </p>
+                  )}
                   {question.target_words_used?.length ? (
                     <p className="text-xs text-gray-400 mt-3">Target words: {question.target_words_used.join(', ')}</p>
                   ) : null}

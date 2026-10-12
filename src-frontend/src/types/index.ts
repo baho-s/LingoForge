@@ -159,6 +159,16 @@ export interface GenerateSentencePayload {
   target_vocab: string[];
 }
 
+export interface SentenceWordHintRequest {
+  question_id: string;
+  term: string;
+}
+
+export interface SentenceWordHintResponse {
+  term: string;
+  translation: string;
+}
+
 export interface GeneratedSentenceResponse {
   sentence_id: string;
   english_sentence: string;

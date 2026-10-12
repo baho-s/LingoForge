@@ -18,10 +18,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<PredefinedWord> PredefinedWords => Set<PredefinedWord>();
     public DbSet<UserVocabularyProgress> UserVocabularyProgresses => Set<UserVocabularyProgress>();
     public DbSet<ReviewHistory> ReviewHistories => Set<ReviewHistory>();
+    public DbSet<SentenceWordHint> SentenceWordHints => Set<SentenceWordHint>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 }
-

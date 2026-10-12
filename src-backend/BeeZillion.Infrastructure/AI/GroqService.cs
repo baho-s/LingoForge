@@ -63,12 +63,60 @@ public sealed class GroqService : IAiSentenceService
         if (string.IsNullOrWhiteSpace(sentence))
             throw new InvalidOperationException("Groq response was empty.");
 
-        // Bazen týrnak veya numara ekler — temizle
+        // Bazen tï¿½rnak veya numara ekler ï¿½ temizle
         sentence = sentence
             .Split('\n', StringSplitOptions.RemoveEmptyEntries)[0]
             .Trim('"', '\'', ' ');
 
         return sentence;
+    }
+
+    public async Task<string> TranslateWordInSentenceAsync(
+        string englishSentence,
+        string word,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+            throw new InvalidOperationException("Groq ApiKey is not configured.");
+
+        var requestBody = new ChatRequest(
+            Model: _options.Model,
+            Messages:
+            [
+                new ChatMessage("system",
+                    "You are an English-to-Turkish vocabulary assistant. " +
+                    "Translate the given English word or phrase into concise, natural Turkish " +
+                    "based only on its meaning in the provided sentence. " +
+                    "Return only the Turkish translation, with no explanation."),
+                new ChatMessage("user",
+                    $"Sentence: {englishSentence}\nWord or phrase: {word}")
+            ],
+            MaxTokens: Math.Max(40, _options.MaxTokens)
+        );
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/openai/v1/chat/completions")
+        {
+            Content = JsonContent.Create(requestBody)
+        };
+        httpRequest.Headers.Authorization =
+            new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+
+        using var response = await _httpClient.SendAsync(httpRequest, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException($"Groq error: {(int)response.StatusCode} {err}");
+        }
+
+        var payload = await response.Content
+            .ReadFromJsonAsync<ChatCompletionResponse>(cancellationToken: ct);
+        var translation = payload?.Choices?.FirstOrDefault()?.Message?.Content?.Trim();
+
+        if (string.IsNullOrWhiteSpace(translation))
+            throw new InvalidOperationException("Groq word translation response was empty.");
+
+        return translation.Trim('"', '\'', ' ');
     }
 
     public async Task<AiEvaluationResult> EvaluateTranslationAsync(
@@ -124,14 +172,14 @@ public sealed class GroqService : IAiSentenceService
             
             if (result is null)
             {
-                // Fallback: benimse cevabý basit heuristic'le
+                // Fallback: benimse cevabï¿½ basit heuristic'le
                 var defaultScore = userTranslation.Length > englishSentence.Length / 2 ? 60 : 30;
-                return new AiEvaluationResult(defaultScore, "Deðerlendirme tamamlandý.", null);
+                return new AiEvaluationResult(defaultScore, "Deï¿½erlendirme tamamlandï¿½.", null);
             }
 
             var score = Math.Clamp(result.Score, 0, 100);
             var feedback = string.IsNullOrWhiteSpace(result.ErrorSummary)
-                ? "Deðerlendirme tamamlandý."
+                ? "Deï¿½erlendirme tamamlandï¿½."
                 : result.ErrorSummary.Trim();
             var correctTranslation = string.IsNullOrWhiteSpace(result.CorrectTranslation)
                 ? null
@@ -140,7 +188,7 @@ public sealed class GroqService : IAiSentenceService
             if (IsLikelyEnglishAnswer(userTranslation) || IsEnglishCopy(englishSentence, userTranslation))
             {
                 var forcedScore = Math.Min(score, 20);
-                var forcedFeedback = "Cevap Türkçe olmalý; Ýngilizce metni aynen yazmýþsýn.";
+                var forcedFeedback = "Cevap Tï¿½rkï¿½e olmalï¿½; ï¿½ngilizce metni aynen yazmï¿½ï¿½sï¿½n.";
                 return new AiEvaluationResult(forcedScore, forcedFeedback, correctTranslation);
             }
 
@@ -148,16 +196,16 @@ public sealed class GroqService : IAiSentenceService
         }
         catch (JsonException ex)
         {
-            // JSON parsing baþarýsýz olursa fallback response
+            // JSON parsing baï¿½arï¿½sï¿½z olursa fallback response
             System.Diagnostics.Debug.WriteLine($"JSON parsing failed: {ex.Message}. Content: {content}");
             var defaultScore = userTranslation.Length > englishSentence.Length / 2 ? 60 : 30;
-            return new AiEvaluationResult(defaultScore, "Deðerlendirme tamamlandý.", null);
+            return new AiEvaluationResult(defaultScore, "Deï¿½erlendirme tamamlandï¿½.", null);
         }
     }
 
     private static string ExtractJson(string content)
     {
-        // Týrnak içine alýnmýþ JSON'ý kontrol et
+        // Tï¿½rnak iï¿½ine alï¿½nmï¿½ï¿½ JSON'ï¿½ kontrol et
         if (content.StartsWith("\"") && content.EndsWith("\""))
         {
             content = content.Substring(1, content.Length - 2);
@@ -171,7 +219,7 @@ public sealed class GroqService : IAiSentenceService
             return content.Substring(start, end - start + 1);
         }
 
-        // Eðer JSON bulunamazsa, content'in kendisini return et (muhtemelen zaten JSON'dýr)
+        // Eï¿½er JSON bulunamazsa, content'in kendisini return et (muhtemelen zaten JSON'dï¿½r)
         return content.Trim();
     }
 
@@ -317,30 +365,10 @@ public sealed class GroqService : IAiSentenceService
 
     private static bool ContainsTurkishChars(string text)
     {
-        foreach (var ch in text)
-        {
-            switch (ch)
-            {
-                case 'ç':
-                case 'ð':
-                case 'ý':
-                case 'ö':
-                case 'þ':
-                case 'ü':
-                case 'Ç':
-                case 'Ð':
-                case 'Ý':
-                case 'Ö':
-                case 'Þ':
-                case 'Ü':
-                    return true;
-            }
-        }
-
-        return false;
+        return text.Any(ch => "Ã§ÄŸÄ±Ã¶ÅŸÃ¼Ã‡ÄžÄ°Ã–ÅžÃœ".Contains(ch));
     }
 
-    // ¦¦ Request modelleri ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    // ï¿½ï¿½ Request modelleri ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     private sealed record ChatRequest(
         [property: JsonPropertyName("model")] string Model,
         [property: JsonPropertyName("messages")] List<ChatMessage> Messages,
@@ -352,7 +380,7 @@ public sealed class GroqService : IAiSentenceService
         [property: JsonPropertyName("content")] string Content
     );
 
-    // ¦¦ Response modelleri ¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦¦
+    // ï¿½ï¿½ Response modelleri ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     private sealed record ChatCompletionResponse(
         [property: JsonPropertyName("choices")] List<Choice>? Choices
     );

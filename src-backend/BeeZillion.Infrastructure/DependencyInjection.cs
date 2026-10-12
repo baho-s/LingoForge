@@ -91,6 +91,7 @@ public static class DependencyInjection
         services.AddScoped<IPredefinedWordRepository, PredefinedWordRepository>();
         services.AddScoped<IUserVocabularyProgressRepository, UserVocabularyProgressRepository>();
         services.AddScoped<IReviewHistoryRepository, ReviewHistoryRepository>();
+        services.AddScoped<ISentenceWordHintRepository, SentenceWordHintRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
@@ -106,4 +107,3 @@ public static class DependencyInjection
                     + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 100)));
     }
 }
-

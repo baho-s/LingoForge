@@ -104,6 +104,11 @@
     "typeAnswer": "Type your answer",
     "checkAnswer": "Check Answer",
     "writeMeaning": "Write the Turkish meaning or main idea",
+    "wordHint": {
+      "show": "Show Turkish hint",
+      "loading": "Loading hint...",
+      "error": "Could not load the hint. Try again."
+    },
     "submitAnswer": "Submit Answer",
     "isIncorrect": "Incorrect",
     "accuracyScore": "Accuracy"

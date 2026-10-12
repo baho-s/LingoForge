@@ -104,6 +104,11 @@
     "typeAnswer": "Cevabını yazın",
     "checkAnswer": "Cevabı Kontrol Et",
     "writeMeaning": "Türkçe anlamını veya ana fikrini yazın",
+    "wordHint": {
+      "show": "Türkçe ipucunu göster",
+      "loading": "İpucu getiriliyor...",
+      "error": "İpucu alınamadı. Tekrar deneyin."
+    },
     "submitAnswer": "Cevabı Gönder",
     "isIncorrect": "Yanlış",
     "accuracyScore": "Doğruluk"
