@@ -1,0 +1,101 @@
+import client from './client';
+import type {
+  AuthResponse,
+  CurrentUserResponse,
+  DashboardDto,
+  WordDto,
+  GetWordListResponse,
+  GetWordFieldsResponse,
+  StatsDto,
+  BulkGenerateResult,
+  AddWordPayload,
+  BulkCreateWordsPayload,
+  BulkCreateWordsResult,
+  ReviewPayload,
+  PracticeQuestionsResponse,
+  PracticeAnswerPayload,
+  PracticeAnswerResponse,
+  GenerateSentencePayload,
+  GeneratedSentenceResponse,
+  SentenceWordHintRequest,
+  SentenceWordHintResponse,
+} from '../types';
+import type { PracticeMode } from '../types';
+
+export const authApi = {
+  login: (email: string, password: string) =>
+    client.post<AuthResponse>('/api/auth/login', { email, password }),
+  register: (email: string, password: string) =>
+    client.post<AuthResponse>('/api/auth/register', { email, password }),
+  startGuest: () => client.post<AuthResponse>('/api/auth/guest'),
+  me: () => client.get<CurrentUserResponse>('/api/auth/me'),
+};
+
+export const wordsApi = {
+  getAll: (skip: number = 0, take: number = 100) =>
+    client.get<GetWordListResponse>('/api/words', { params: { skip, take } }),
+  getFields: () => client.get<GetWordFieldsResponse>('/api/words/fields'),
+  getByField: (field: string, skip: number = 0, take: number = 100) =>
+    client.get<GetWordListResponse>(`/api/words/by-field/${encodeURIComponent(field)}`, { params: { skip, take } }),
+  getReviewSessionWords: (limit: number = 8, includeAll: boolean = false) =>
+    client.get<WordDto[]>('/api/words/review/session', { params: { limit, include_all: includeAll } }),
+  add: (payload: AddWordPayload) => client.post<WordDto>('/api/words', payload),
+  bulkAdd: (payload: BulkCreateWordsPayload) =>
+    client.post<BulkCreateWordsResult>('/api/words/bulk', payload),
+  bulkGenerate: () => client.post<BulkGenerateResult>('/api/words/bulk-generate'),
+  review: (id: string, payload: ReviewPayload) =>
+    client.post<WordDto>(`/api/words/${id}/review`, payload),
+  delete: (id: string) => client.delete(`/api/words/${id}`),
+  bulkDeleteByField: (field: string) =>
+    client.delete<{ success: boolean; fieldName: string; deletedCount: number; message: string }>(
+      `/api/words/by-field/${encodeURIComponent(field)}`
+    ),
+  getWordOfDay: () => client.get<WordDto>('/api/words/word-of-day'),
+};
+
+export const dashboardApi = {
+  get: () => client.get<DashboardDto>('/api/dashboard'),
+  getWordOfDay: () => client.get<WordDto>('/api/words/word-of-day'),
+};
+
+export const practiceApi = {
+  getQuestions: (modes: PracticeMode[] = ['multiple_choice'], limit = 8) =>
+    client.get<PracticeQuestionsResponse>('/api/practice/questions', {
+      params: { mode: modes.join(','), limit },
+    }),
+  generateSentence: (payload: GenerateSentencePayload) =>
+    client.post<GeneratedSentenceResponse>('/api/practice/generate-sentence', payload),
+  getSentenceWordHint: (payload: SentenceWordHintRequest) =>
+    client.post<SentenceWordHintResponse>('/api/practice/sentence-hint', payload),
+  submitAnswer: (payload: PracticeAnswerPayload) =>
+    client.post<PracticeAnswerResponse>('/api/practice/submit-answer', payload),
+};
+
+export const statsApi = {
+  get: () => client.get<StatsDto>('/api/stats'),
+};
+
+export const predefinedWordsApi = {
+  getFields: () =>
+    client.get<{ fields: string[] }>('/api/PredefinedWords/fields'),
+  getWordsByField: (field: string) =>
+    client.get<{
+      field: string;
+      totalCount: number;
+      words: Array<{
+        id: string;
+        field: string;
+        category?: string;
+        original: string;
+        translation: string;
+        aiSentence?: string;
+      }>;
+    }>(`/api/PredefinedWords/fields/${field}`),
+  importField: (field: string) =>
+    client.post<{
+      success: boolean;
+      fieldName: string;
+      importedCount: number;
+      message: string;
+    }>('/api/PredefinedWords/import-field', { field }),
+};

@@ -11,10 +11,12 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowVercel",
         policy =>
         {
-            policy.WithOrigins(
-                "https://beezillion-iota.vercel.app", // Canlı linkin dursun
-                "http://localhost:5173"                   // VİRGÜL KOYUP BUNU EKLE (Vite'ın varsayılan portu)
-            ) 
+            policy.SetIsOriginAllowed(origin =>
+                      origin is "http://localhost:5173" or "http://localhost:5174"
+                      || (Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                          && uri.Scheme == Uri.UriSchemeHttps
+                          && uri.Host.StartsWith("beezillion", StringComparison.OrdinalIgnoreCase)
+                          && uri.Host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)))
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials(); // Auth kullanıyorsan
