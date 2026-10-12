@@ -35,7 +35,7 @@ public static class DependencyInjection
         {
             options.ApiKey = groqApiKey;
             options.BaseUrl = configuration["Groq:BaseUrl"] ?? "https://api.groq.com";
-            options.Model = configuration["Groq:Model"] ?? "llama-3.1-8b-instant";
+            options.Model = configuration["Groq:Model"] ?? "openai/gpt-oss-20b";
             options.MaxTokens = int.Parse(configuration["Groq:MaxTokens"] ?? "80");
         });
 
