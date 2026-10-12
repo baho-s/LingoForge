@@ -11,17 +11,20 @@ public sealed class BulkGenerateSentencesCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IAiSentenceService _aiSentenceService;
+    private readonly IAiUsageLimiter _aiUsageLimiter;
 
     public BulkGenerateSentencesCommandHandler(
         IWordRepository wordRepository,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
-        IAiSentenceService aiSentenceService)
+        IAiSentenceService aiSentenceService,
+        IAiUsageLimiter aiUsageLimiter)
     {
         _wordRepository = wordRepository;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _aiSentenceService = aiSentenceService;
+        _aiUsageLimiter = aiUsageLimiter;
     }
 
     public async Task<BulkGenerateResult> Handle(BulkGenerateSentencesCommand request, CancellationToken cancellationToken)
@@ -34,6 +37,7 @@ public sealed class BulkGenerateSentencesCommandHandler
         }
 
         var generated = 0;
+        await _aiUsageLimiter.EnsureAvailableAsync(words.Count, cancellationToken);
         foreach (var word in words)
         {
             var sentence = await _aiSentenceService.GenerateSentenceAsync(word.Original, cancellationToken);

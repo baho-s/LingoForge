@@ -7,6 +7,7 @@ using Polly;
 using Polly.Extensions.Http;
 using System.Text;
 using BeeZillion.Application.Common.Interfaces;
+using BeeZillion.Application.Common.Services;
 using BeeZillion.Domain.Repositories;
 using BeeZillion.Infrastructure.AI;
 using BeeZillion.Infrastructure.Auth;
@@ -47,13 +48,17 @@ public static class DependencyInjection
 
         services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
-        services.AddHttpClient<IAiSentenceService, GroqService>((sp, client) =>
+        services.AddHttpClient<GroqService>((sp, client) =>
         {
             var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GroqOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(20);
         })
         .AddPolicyHandler(GetAiRetryPolicy());
+        services.AddScoped<IAiSentenceService>(sp => new LimitedAiSentenceService(
+            sp.GetRequiredService<GroqService>(),
+            sp.GetRequiredService<IAiUsageLimiter>()));
+        services.AddHostedService<GuestCleanupService>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>

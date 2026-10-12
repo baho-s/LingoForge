@@ -8,10 +8,16 @@ namespace BeeZillion.Domain.Aggregates.UserAggregate;
 
 public sealed class User : AggregateRoot<UserId>
 {
+    public const int GuestAiLimit = 50;
+    public const int GuestDurationDays = 3;
+
     private readonly List<Badge> _badges = new();
 
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
+    public bool IsGuest { get; private set; }
+    public DateTime? GuestExpiresAt { get; private set; }
+    public int AiUsageCount { get; private set; }
     public int Streak { get; private set; }
     public int DailyGoal { get; private set; }
     public DateTime LastActivity { get; private set; }
@@ -44,6 +50,28 @@ public sealed class User : AggregateRoot<UserId>
         }
 
         return new User(new UserId(Guid.NewGuid()), email.Trim().ToLowerInvariant(), passwordHash);
+    }
+
+    public static User CreateGuest(DateTime utcNow)
+    {
+        var id = Guid.NewGuid();
+        var user = new User(new UserId(id), $"guest-{id:N}@guest.local", string.Empty)
+        {
+            IsGuest = true,
+            GuestExpiresAt = utcNow.AddDays(GuestDurationDays),
+        };
+
+        return user;
+    }
+
+    public bool IsGuestExpired(DateTime utcNow)
+    {
+        return IsGuest && GuestExpiresAt is { } expiresAt && expiresAt <= utcNow;
+    }
+
+    public int GetGuestAiRemaining()
+    {
+        return Math.Max(0, GuestAiLimit - AiUsageCount);
     }
 
     public void RecordActivity(DateTime utcNow)

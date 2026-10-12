@@ -149,7 +149,17 @@
     "passwordTooShort": "Password must be at least 6 characters",
     "passwordsMustMatch": "Passwords must match",
     "loginFailed": "Login failed",
-    "registerFailed": "Registration failed"
+    "registerFailed": "Registration failed",
+    "guest": {
+      "start": "Create guest account",
+      "starting": "Preparing guest account...",
+      "hint": "Try without signing up: valid for 3 days, 50 AI uses.",
+      "failed": "Could not create a guest account. Please try again later.",
+      "or": "or",
+      "welcome": "Your guest account is ready!",
+      "banner": "Guest account · {{days}} days left · {{remaining}}/{{limit}} AI uses left",
+      "limitReached": "Your guest AI limit is reached. Register to continue."
+    }
   },
   "common": {
     "loading": "Loading...",

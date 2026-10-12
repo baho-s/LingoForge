@@ -36,6 +36,15 @@ public sealed class ExceptionHandlingMiddleware
                 message = ex.Message,
             });
         }
+        catch (AiLimitExceededException ex)
+        {
+            context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                message = ex.Message,
+                code = "guest_ai_limit",
+            });
+        }
         catch (ForbiddenException ex)
         {
             context.Response.StatusCode = StatusCodes.Status403Forbidden;

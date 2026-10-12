@@ -25,7 +25,7 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResp
     public async Task<AuthResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByEmailAsync(request.Email.Trim().ToLowerInvariant(), cancellationToken);
-        if (user is null || !_passwordHasher.VerifyHashedPassword(user.PasswordHash, request.Password))
+        if (user is null || user.IsGuest || !_passwordHasher.VerifyHashedPassword(user.PasswordHash, request.Password))
         {
             throw new ValidationException(new Dictionary<string, string[]>
             {

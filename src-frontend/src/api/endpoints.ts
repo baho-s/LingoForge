@@ -1,6 +1,7 @@
 import client from './client';
 import type {
   AuthResponse,
+  CurrentUserResponse,
   DashboardDto,
   WordDto,
   GetWordListResponse,
@@ -26,6 +27,8 @@ export const authApi = {
     client.post<AuthResponse>('/api/auth/login', { email, password }),
   register: (email: string, password: string) =>
     client.post<AuthResponse>('/api/auth/register', { email, password }),
+  startGuest: () => client.post<AuthResponse>('/api/auth/guest'),
+  me: () => client.get<CurrentUserResponse>('/api/auth/me'),
 };
 
 export const wordsApi = {

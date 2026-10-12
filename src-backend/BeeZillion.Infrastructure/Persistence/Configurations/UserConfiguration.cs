@@ -28,6 +28,18 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(500)
             .IsRequired();
 
+        builder.Property(user => user.IsGuest)
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(user => user.GuestExpiresAt);
+
+        // Sayaç yalnızca atomik UPDATE ile artar; Update() çağrıları eski değeri geri yazmasın.
+        builder.Property(user => user.AiUsageCount)
+            .HasDefaultValue(0)
+            .IsRequired()
+            .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
         builder.Property(user => user.DailyGoal)
             .IsRequired();
 

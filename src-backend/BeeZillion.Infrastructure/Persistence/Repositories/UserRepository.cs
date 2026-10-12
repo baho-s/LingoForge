@@ -24,6 +24,17 @@ public sealed class UserRepository : IUserRepository
         return _dbContext.Users.FirstOrDefaultAsync(user => user.Email == email, ct);
     }
 
+    public async Task<bool> TryConsumeGuestAiCallsAsync(UserId id, int count, int limit, CancellationToken ct = default)
+    {
+        var updated = await _dbContext.Users
+            .Where(user => user.Id == id && user.IsGuest && user.AiUsageCount + count <= limit)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(user => user.AiUsageCount, user => user.AiUsageCount + count),
+                ct);
+
+        return updated == 1;
+    }
+
     public void Add(User user)
     {
         _dbContext.Users.Add(user);

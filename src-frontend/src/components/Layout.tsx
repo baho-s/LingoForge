@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LayoutDashboard, BookOpen, Brain, BarChart3, LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../store/auth';
+import GuestBanner from './GuestBanner';
 
 export default function Layout() {
   const { t } = useTranslation();
@@ -80,6 +81,7 @@ export default function Layout() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
+        <GuestBanner />
         <header className="md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 sticky top-0 z-30">
           <button onClick={() => setSidebarOpen(true)} className="p-1 text-gray-600">
             {sidebarOpen ? <X size={22} /> : <Menu size={22} />}

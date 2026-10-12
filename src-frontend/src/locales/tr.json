@@ -149,7 +149,17 @@
     "passwordTooShort": "Şifre en az 6 karakter olmalıdır",
     "passwordsMustMatch": "Şifreler eşleşmeli",
     "loginFailed": "Giriş başarısız oldu",
-    "registerFailed": "Kayıt başarısız oldu"
+    "registerFailed": "Kayıt başarısız oldu",
+    "guest": {
+      "start": "Misafir hesabı oluştur",
+      "starting": "Misafir hesabı hazırlanıyor...",
+      "hint": "Kayıt olmadan dene: 3 gün geçerli, 50 AI hakkı.",
+      "failed": "Misafir hesabı oluşturulamadı. Lütfen daha sonra tekrar dene.",
+      "or": "veya",
+      "welcome": "Misafir hesabın hazır!",
+      "banner": "Misafir hesabı · {{days}} gün kaldı · {{remaining}}/{{limit}} AI hakkı kaldı",
+      "limitReached": "Misafir AI hakkın doldu. Devam etmek için kayıt ol."
+    }
   },
   "common": {
     "loading": "Yükleniyor...",

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 namespace BeeZillion.API;
 
@@ -50,6 +51,17 @@ public static class DependencyInjection
             });
         });
         services.AddAuthorization();
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy("guest", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+                httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromHours(1),
+                }));
+        });
         services.AddScoped<BeeZillion.Application.Common.Interfaces.ICurrentUserService, BeeZillion.API.Services.CurrentUserService>();
         services.AddCors(options =>
         {

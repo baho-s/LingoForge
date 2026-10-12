@@ -7,6 +7,7 @@ public interface IUserRepository
 {
     Task<User?> GetByIdAsync(UserId id, CancellationToken ct = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
+    Task<bool> TryConsumeGuestAiCallsAsync(UserId id, int count, int limit, CancellationToken ct = default);
     void Add(User user);
     void Update(User user);
 }

@@ -5,6 +5,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../api/endpoints';
 import { useAuthStore } from '../store/auth';
 import { useToast } from '../components/Toast';
+import GuestLoginButton from '../components/GuestLoginButton';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -58,6 +59,7 @@ export default function Login() {
           <h1 className="text-3xl font-bold text-gray-900">BeeZillion</h1>
           <p className="text-gray-500 mt-2">Öğrenmeye devam etmek için giriş yap</p>
         </div>
+        <GuestLoginButton />
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm p-8 space-y-5">
           {error && (
             <div className="bg-red-50 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>

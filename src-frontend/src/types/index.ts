@@ -4,6 +4,13 @@ export interface AuthResponse {
   email: string;
 }
 
+export interface CurrentUserResponse {
+  isGuest: boolean;
+  guestExpiresAt?: string;
+  aiLimit?: number;
+  aiRemaining?: number;
+}
+
 export interface WordDto {
   id: string;
   original: string;

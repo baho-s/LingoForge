@@ -15,19 +15,22 @@ public sealed class BulkCreateWordsCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUser;
     private readonly IAiSentenceService _aiSentenceService;
+    private readonly IAiUsageLimiter _aiUsageLimiter;
 
     public BulkCreateWordsCommandHandler(
         IWordRepository wordRepository,
         IUserRepository userRepository,
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUser,
-        IAiSentenceService aiSentenceService)
+        IAiSentenceService aiSentenceService,
+        IAiUsageLimiter aiUsageLimiter)
     {
         _wordRepository = wordRepository;
         _userRepository = userRepository;
         _unitOfWork = unitOfWork;
         _currentUser = currentUser;
         _aiSentenceService = aiSentenceService;
+        _aiUsageLimiter = aiUsageLimiter;
     }
 
     public async Task<BulkCreateWordsResult> Handle(BulkCreateWordsCommand request, CancellationToken cancellationToken)
@@ -42,6 +45,11 @@ public sealed class BulkCreateWordsCommandHandler
         var hasExistingWords = await _wordRepository.GetTotalCountByOwnerAsync(userId, cancellationToken) > 0;
         var createdCount = 0;
         var generatedSentenceCount = 0;
+
+        if (request.GenerateSentenceImmediately)
+        {
+            await _aiUsageLimiter.EnsureAvailableAsync(request.Items.Count, cancellationToken);
+        }
 
         foreach (var item in request.Items)
         {

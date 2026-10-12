@@ -39,6 +39,7 @@ app.UseHttpsRedirection();
 
 
 app.UseCors("AllowVercel");
+app.UseRateLimiter();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthentication();

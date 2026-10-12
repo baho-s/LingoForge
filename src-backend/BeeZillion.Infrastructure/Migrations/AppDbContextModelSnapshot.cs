@@ -223,6 +223,11 @@ namespace BeeZillion.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("AiUsageCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("DailyGoal")
                         .HasColumnType("int");
 
@@ -230,6 +235,14 @@ namespace BeeZillion.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(320)
                         .HasColumnType("nvarchar(320)");
+
+                    b.Property<DateTime?>("GuestExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsGuest")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("LastActivity")
                         .HasColumnType("datetime2");
