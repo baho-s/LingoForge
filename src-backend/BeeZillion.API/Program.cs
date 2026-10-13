@@ -2,6 +2,7 @@ using BeeZillion.API;
 using BeeZillion.API.Middleware;
 using BeeZillion.Application;
 using BeeZillion.Infrastructure;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,12 +24,22 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Hosting proxy'sinin IP'si bilinmediği için güvenilir ağ listeleri temizlenir
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services
     .AddApplicationServices()
     .AddInfrastructureServices(builder.Configuration)
     .AddApiServices(builder.Configuration);
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
